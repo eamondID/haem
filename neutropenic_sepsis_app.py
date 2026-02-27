@@ -13,133 +13,117 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  COLOUR PALETTE
+# COLOURS
 # ══════════════════════════════════════════════════════════════════════════════
 C = {
-    "purple":        "#C39BD3",
-    "blue":          "#85C1E9",
-    "yellow":        "#F9E79F",
-    "green":         "#A9DFBF",
-    "pink":          "#F1948A",
-    "white":         "#FFFFFF",
-    "outline":       "#5D6D7E",
-    "active_stroke": "#C0392B",
-    "dim_fill":      "#F4F6F7",
-    "dim_stroke":    "#CCD1D1",
-    "dim_text":      "#CCD1D1",
+    "purple":  "#C39BD3",
+    "blue":    "#85C1E9",
+    "yellow":  "#F9E79F",
+    "green":   "#A9DFBF",
+    "pink":    "#F1948A",
+    "white":   "#FFFFFF",
+    "ol":      "#5D6D7E",   # outline (normal)
+    "act":     "#C0392B",   # active stroke
+    "df":      "#F4F6F7",   # dim fill
+    "ds":      "#CCD1D1",   # dim stroke
+    "dt":      "#CCD1D1",   # dim text
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  SVG PRIMITIVES
+# SVG HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def esc(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+def esc(s):
+    return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
 
-def wrap_text(text: str, box_w: int, fs: int) -> list:
-    char_w = fs * 0.56
-    max_ch = max(1, int((box_w - 14) / char_w))
+def _wrap(text, box_w, fs):
+    cw = fs * 0.57
+    mc = max(1, int((box_w - 16) / cw))
     words, lines, cur = text.split(), [], ""
     for w in words:
-        test = (cur + " " + w).strip()
-        if len(test) <= max_ch:
-            cur = test
+        t = (cur + " " + w).strip()
+        if len(t) <= mc:
+            cur = t
         else:
-            if cur:
-                lines.append(cur)
+            if cur: lines.append(cur)
             cur = w
-    if cur:
-        lines.append(cur)
+    if cur: lines.append(cur)
     return lines or [text]
 
-def box(x, y, w, h, fill, label="", fs=10, bold=False,
-        bullets=None, active=False, dimmed=False, dashed=False):
+def node(x, y, w, h, fill, label="", fs=10, bold=False,
+         bullets=None, active=False, dimmed=False, dashed=False):
     if dimmed:
-        fill       = C["dim_fill"]
-        stroke     = C["dim_stroke"]
-        text_color = C["dim_text"]
-        sw         = 1
+        fill, stroke, tc, sw = C["df"], C["ds"], C["dt"], 1
     elif active:
-        stroke     = C["active_stroke"]
-        text_color = "#1A1A1A"
-        sw         = 3
+        stroke, tc, sw = C["act"], "#111", 3
     else:
-        stroke     = C["outline"]
-        text_color = "#1A1A1A"
-        sw         = 1.5
-
+        stroke, tc, sw = C["ol"], "#111", 1.5
     dash = ' stroke-dasharray="6,3"' if dashed else ""
-    s = (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" '
-         f'fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{dash}/>\n')
-
+    s = f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="7" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{dash}/>\n'
     fw = "bold" if bold else "normal"
-    lh = fs + 3
-
+    lh = fs + 3.5
     if bullets:
-        total = len(bullets) * lh
-        ty0 = y + (h - total) / 2 + fs
-        for i, bl in enumerate(bullets):
-            s += (f'<text x="{x+10}" y="{ty0 + i*lh}" font-size="{fs}" '
-                  f'fill="{text_color}" font-family="Arial,sans-serif">'
-                  f'• {esc(bl)}</text>\n')
+        tot = len(bullets) * lh
+        ty0 = y + (h - tot) / 2 + fs
+        for i, b in enumerate(bullets):
+            s += f'<text x="{x+9}" y="{ty0+i*lh}" font-size="{fs}" fill="{tc}" font-family="Arial,sans-serif">• {esc(b)}</text>\n'
     elif label:
-        lines = wrap_text(label, w, fs)
-        total = len(lines) * lh
-        ty0 = y + (h - total) / 2 + fs
+        lines = _wrap(label, w, fs)
+        tot = len(lines) * lh
+        ty0 = y + (h - tot) / 2 + fs
         for i, ln in enumerate(lines):
-            s += (f'<text x="{x + w/2}" y="{ty0 + i*lh}" font-size="{fs}" '
-                  f'font-weight="{fw}" fill="{text_color}" '
-                  f'font-family="Arial,sans-serif" text-anchor="middle">'
-                  f'{esc(ln)}</text>\n')
+            s += f'<text x="{x+w/2}" y="{ty0+i*lh}" font-size="{fs}" font-weight="{fw}" fill="{tc}" font-family="Arial,sans-serif" text-anchor="middle">{esc(ln)}</text>\n'
     return s
 
+def arrow(x1, y1, x2, y2, act=False, dim=False):
+    clr = C["act"] if act else (C["ds"] if dim else C["ol"])
+    sw  = 2.5 if act else 1.3
+    mk  = f'url(#arr_{"a" if act else "n"})'
+    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
 
-def _line(x1, y1, x2, y2, active=False, dimmed=False):
-    clr = C["active_stroke"] if active else (C["dim_stroke"] if dimmed else C["outline"])
-    sw  = 2.5 if active else 1.2
-    mk  = f'url(#arr_{"a" if active else "n"})'
-    return (f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
-            f'stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n')
+def seg(x1, y1, x2, y2, act=False, dim=False):
+    """Line segment with no arrowhead."""
+    clr = C["act"] if act else (C["ds"] if dim else C["ol"])
+    sw  = 2.5 if act else 1.3
+    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}"/>\n'
 
-
-def _seg(x1, y1, x2, y2, active=False, dimmed=False):
-    """Line segment with NO arrowhead (internal bus segment)."""
-    clr = C["active_stroke"] if active else (C["dim_stroke"] if dimmed else C["outline"])
-    sw  = 2.5 if active else 1.2
-    return (f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
-            f'stroke="{clr}" stroke-width="{sw}"/>\n')
-
-
-def elbow(x1, y1, x2, y2, bend_y=None, bend_x=None, active=False, dimmed=False):
-    """
-    Elbow connector (L or Z shape).
-    bend_y: go vertical to bend_y, then horizontal to x2, then vertical to y2.
-    bend_x: go horizontal to bend_x, then vertical to y2, then horizontal to x2.
-    """
-    clr = C["active_stroke"] if active else (C["dim_stroke"] if dimmed else C["outline"])
-    sw  = 2.5 if active else 1.2
-    mk  = f'url(#arr_{"a" if active else "n"})'
-
-    if bend_y is not None:
-        pts = f"{x1},{y1} {x1},{bend_y} {x2},{bend_y} {x2},{y2}"
-    elif bend_x is not None:
-        pts = f"{x1},{y1} {bend_x},{y1} {bend_x},{y2} {x2},{y2}"
+def elbow(x1, y1, x2, y2, by=None, bx=None, act=False, dim=False):
+    """Polyline elbow with arrowhead at end."""
+    clr = C["act"] if act else (C["ds"] if dim else C["ol"])
+    sw  = 2.5 if act else 1.3
+    mk  = f'url(#arr_{"a" if act else "n"})'
+    if by is not None:
+        pts = f"{x1},{y1} {x1},{by} {x2},{by} {x2},{y2}"
+    elif bx is not None:
+        pts = f"{x1},{y1} {bx},{y1} {bx},{y2} {x2},{y2}"
     else:
-        mx = (x1 + x2) / 2
+        mx = (x1+x2)/2
         pts = f"{x1},{y1} {mx},{y1} {mx},{y2} {x2},{y2}"
+    return f'<polyline points="{pts}" fill="none" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
 
-    return (f'<polyline points="{pts}" fill="none" stroke="{clr}" '
-            f'stroke-width="{sw}" marker-end="{mk}"/>\n')
-
+def hbus(y, x_left, x_right, drops, act_set, dim_set):
+    """
+    Horizontal bus at y from x_left to x_right,
+    then vertical drops with arrows to each (cx, top_y) in drops.
+    act_set / dim_set: sets of indices into drops that are active/dimmed.
+    """
+    # pick bus line style from majority
+    any_act = bool(act_set)
+    any_dim = not any_act and len(dim_set) == len(drops)
+    s = seg(x_left, y, x_right, y, act=any_act, dim=any_dim)
+    for i, (cx, ty) in enumerate(drops):
+        a = i in act_set
+        d = i in dim_set
+        s += arrow(cx, y, cx, ty, act=a, dim=d)
+    return s
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PATHWAY LOGIC
+# PATHWAY LOGIC
 # ══════════════════════════════════════════════════════════════════════════════
 
 def determine_pathway(fever_resolved, neutro_resolved, stable,
                       enterocolitis, allo_sct, micro_defined):
     AN = {"header", "review72"}
-
     if fever_resolved:
         AN.add("resolved_fever")
         if micro_defined:
@@ -152,7 +136,7 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
                 AN.add("r_neutro_ongoing")
                 if enterocolitis:
                     AN.add("r_entero_yes")
-                    AN.add("continue_empiric_r")
+                    AN.add("continue_r")
                 else:
                     AN.add("r_entero_no")
                     AN.add("target_abx")
@@ -165,14 +149,14 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
                 AN.add("l_neutro_ongoing")
                 if enterocolitis:
                     AN.add("l_entero_yes")
-                    AN.add("continue_empiric_l")
+                    AN.add("continue_l")
                 else:
                     AN.add("l_entero_no")
                     if allo_sct:
                         AN.add("allo_sct")
                         AN.add("cease_allo")
                     else:
-                        AN.add("non_allo_sct")
+                        AN.add("non_allo")
                         AN.add("cease_non_allo")
     else:
         AN.add("persistent_fever")
@@ -180,149 +164,147 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
         AN.add("recurrent_actions")
         if stable:
             AN.add("p_stable")
-            AN.add("continue_empiric_stable")
+            AN.add("continue_stable")
         else:
             AN.add("p_unstable")
-            AN.add("unstable_actions")
-            AN.add("imaging")
-
+            AN.add("unstable_box")
+            AN.add("imaging_box")
     return AN
 
-
 # ══════════════════════════════════════════════════════════════════════════════
-#  CLEAN GRID SVG LAYOUT
+# SVG BUILD
 #
-#  Canvas: 1020 × 790 px
+# 6 COLUMNS  (gap=10px between each):
+#   C0  x=10   w=150   l_neutro_resolved, l_entero_yes, stop_abx / continue_l
+#   C1  x=170  w=150   l_neutro_ongoing,  l_entero_no,  allo_sct,  cease_allo
+#   C2  x=330  w=150   r_neutro_ongoing,  r_entero_yes, continue_r, cease_non_allo
+#   C3  x=490  w=150   r_neutro_resolved, r_entero_no,  target_abx
+#   C4  x=660  w=185   p_stable, continue_stable, recurrent_fever, recurrent_actions
+#   C5  x=855  w=215   p_unstable, unstable_box, imaging_box
 #
-#  Left half  (x 10–560):  Resolved fever pathway
-#  Right half (x 580–1010): Persistent fever pathway
+# Span nodes:
+#   resolved_fever  spans C0-C1  x=10  w=310
+#   micro_defined   spans C2-C3  x=330 w=310
+#   persistent_fever spans C4-C5 x=660 w=410
+#   fever_unknown   spans C0-C1  x=10  w=310
+#   liaise_id       spans C2-C3  x=330 w=310
+#   header / review72 span all   x=10  w=1060
 #
-#  Row tops (Y coordinates):
-#    R0   y=10    — main header (centred)
-#    R1   y=58    — 72-hr review (centred)
-#    R2   y=110   — resolved_fever | micro_defined | persistent_fever
-#    R3   y=178   — fever_unknown  | liaise_id     | p_stable | p_unstable
-#    R4   y=250   — neutro splits (both sides)
-#    R5   y=318   — enterocolitis splits (both sides)
-#    R6   y=388   — allo/non-allo | continue_empiric_r | continue_empiric_l
-#    R7   y=456   — cease_allo | cease_non_allo | target_abx | stop_abx
-#    R8   y=540   — recurrent_fever  (right half)
-#    R9   y=600   — recurrent_actions
-#    R10  y=700   — legend
+# ROWS (top y, height):
+#   R0  y=10   h=38   header
+#   R1  y=60   h=30   review72
+#   R2  y=106  h=46   resolved_fever | micro_defined | persistent_fever
+#   R3  y=168  h=38   fever_unknown  | liaise_id     | p_stable | p_unstable
+#   R4  y=224  h=34   neutro splits (C0-C3)          | continue_stable (C4) | unstable_box top
+#   R5  y=276  h=34   entero splits  (C0-C3)
+#   R6  y=328  h=34   stop/cont_l(C0) | allo(C1) | cont_r(C2) | target(C3)
+#   R7  y=380  h=52   cease_allo(C1)  | cease_non_allo(C2)
+#   R8  y=480  h=36   recurrent_fever (C4-C5)
+#   R9  y=528  h=80   recurrent_actions (C4-C5)
+#   unstable_box  y=224 h=90  (C5)
+#   imaging_box   y=324 h=90  (C5)
+#   legend y=650
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_svg(AN: set) -> str:
+def build_svg(AN):
+    def a(n): return n in AN
+    def d(n): return len(AN) > 2 and n not in AN
 
-    def act(n): return n in AN
-    def dim(n): return len(AN) > 2 and n not in AN
+    W, H = 1090, 700
 
-    W, H = 1020, 760
+    # ── geometry ──────────────────────────────────────────────────────────
+    # columns: (x, w)
+    COL = [
+        (10,  150),   # C0
+        (170, 150),   # C1
+        (330, 150),   # C2
+        (490, 150),   # C3
+        (650, 185),   # C4
+        (845, 215),   # C5
+    ]
+    def cx(c):   return COL[c][0] + COL[c][1] / 2   # col centre-x
+    def cl(c):   return COL[c][0]                    # col left-x
+    def cr(c):   return COL[c][0] + COL[c][1]        # col right-x
+    def cw(c):   return COL[c][1]                    # col width
+    def span_x(c0, c1): return COL[c0][0]
+    def span_w(c0, c1): return COL[c1][0] + COL[c1][1] - COL[c0][0]
+    def span_cx(c0,c1): return span_x(c0,c1) + span_w(c0,c1)/2
 
+    # single node geometry by id
+    G = {}
+    # top spans
+    G["header"]          = (span_x(0,5), 10,  span_w(0,5), 38)
+    G["review72"]        = (span_x(0,5)+30, 60, span_w(0,5)-60, 30)
+    # R2
+    G["resolved_fever"]  = (span_x(0,1), 106, span_w(0,1), 46)
+    G["micro_defined"]   = (span_x(2,3), 106, span_w(2,3), 46)
+    G["persistent_fever"]= (span_x(4,5), 106, span_w(4,5), 46)
+    # R3
+    G["fever_unknown"]   = (span_x(0,1), 168, span_w(0,1), 38)
+    G["liaise_id"]       = (span_x(2,3), 168, span_w(2,3), 38)
+    G["p_stable"]        = (cl(4), 168, cw(4), 38)
+    G["p_unstable"]      = (cl(5), 162, cw(5), 56)  # taller for bullets
+    # R4 — neutro
+    G["l_neutro_resolved"]= (cl(0), 224, cw(0), 34)
+    G["l_neutro_ongoing"] = (cl(1), 224, cw(1), 34)
+    G["r_neutro_ongoing"] = (cl(2), 224, cw(2), 34)
+    G["r_neutro_resolved"]= (cl(3), 224, cw(3), 34)
+    G["continue_stable"]  = (cl(4), 224, cw(4), 34)
+    G["unstable_box"]     = (cl(5), 224, cw(5), 90)
+    # R5 — entero
+    G["l_entero_yes"]    = (cl(0), 278, cw(0), 34)
+    G["l_entero_no"]     = (cl(1), 278, cw(1), 34)
+    G["r_entero_yes"]    = (cl(2), 278, cw(2), 34)
+    G["r_entero_no"]     = (cl(3), 278, cw(3), 34)
+    G["imaging_box"]     = (cl(5), 324, cw(5), 90)
+    # R6 — actions
+    G["stop_abx"]        = (cl(0), 332, cw(0), 34)
+    G["continue_l"]      = (cl(0), 332, cw(0), 34)   # exclusive with stop_abx
+    G["allo_sct"]        = (cl(1), 332, cw(1), 34)
+    G["non_allo"]        = (cl(1)+10, 332, cw(1)-10, 34)  # slight indent to not overlap allo
+    G["continue_r"]      = (cl(2), 332, cw(2), 34)
+    G["target_abx"]      = (cl(3), 332, cw(3), 34)
+    # R7 — cease
+    G["cease_allo"]      = (cl(1), 386, cw(1), 52)
+    G["cease_non_allo"]  = (cl(2), 386, cw(2), 52)
+    # Recurrent
+    G["recurrent_fever"]   = (span_x(4,5), 478, span_w(4,5), 36)
+    G["recurrent_actions"] = (span_x(4,5), 526, span_w(4,5), 82)
+
+    def gx(n): return G[n][0]
+    def gy(n): return G[n][1]
+    def gw(n): return G[n][2]
+    def gh(n): return G[n][3]
+    def gcx(n): return G[n][0] + G[n][2]/2
+    def gcy(n): return G[n][1] + G[n][3]/2
+    def gtop(n): return G[n][1]
+    def gbot(n): return G[n][1] + G[n][3]
+    def glft(n): return G[n][0]
+    def grgt(n): return G[n][0] + G[n][2]
+
+    # ── SVG open ──────────────────────────────────────────────────────────
     svg = (f'<svg id="flowSVG" xmlns="http://www.w3.org/2000/svg" '
            f'width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
-           f'style="font-family:Arial,sans-serif;background:#fff">\n')
+           f'style="background:#fff;font-family:Arial,sans-serif">\n')
 
     svg += f"""<defs>
-  <marker id="arr_n" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
-    <path d="M0,0 L0,7 L9,3.5 z" fill="{C['outline']}"/>
+  <marker id="arr_n" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto">
+    <path d="M0,0 L0,7 L9,3.5 z" fill="{C['ol']}"/>
   </marker>
-  <marker id="arr_a" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
-    <path d="M0,0 L0,7 L9,3.5 z" fill="{C['active_stroke']}"/>
+  <marker id="arr_a" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto">
+    <path d="M0,0 L0,7 L9,3.5 z" fill="{C['act']}"/>
   </marker>
 </defs>\n"""
 
-    # ── Helper: node geometry dict ─────────────────────────────────────────
-    # Each entry: (x, y, w, h)
-    G = {
-        # ── Shared top ──────────────────────────────────────────────
-        "header":       (360, 10,  300, 36),
-        "review72":     (345, 58,  330, 30),
-
-        # ── R2: three branch headers ─────────────────────────────────
-        "resolved_fever":  (10,  112, 215, 44),
-        "micro_defined":   (245, 112, 205, 44),   # dashed
-        "persistent_fever":(730, 112, 280, 44),
-
-        # ── R3 left: fever_unknown | liaise_id ──────────────────────
-        "fever_unknown":   (10,  180, 190, 34),
-        "liaise_id":       (230, 180, 195, 34),   # dashed
-
-        # ── R3 right: stable / unstable ──────────────────────────────
-        "p_stable":        (700, 180, 145, 34),
-        "p_unstable":      (860, 174, 155, 60),
-
-        # ── R4: neutro status ─────────────────────────────────────────
-        "l_neutro_resolved": (10,  250, 130, 32),
-        "l_neutro_ongoing":  (155, 250, 130, 32),
-        "r_neutro_ongoing":  (230, 250, 130, 32),
-        "r_neutro_resolved": (375, 250, 130, 32),
-
-        # ── R5: enterocolitis ─────────────────────────────────────────
-        "l_entero_yes":    (10,  318, 130, 34),
-        "l_entero_no":     (155, 318, 130, 34),
-        "r_entero_yes":    (225, 318, 135, 34),
-        "r_entero_no":     (375, 318, 135, 34),
-
-        # ── R6: allo/non-allo + continue empiric ─────────────────────
-        "continue_empiric_l": (10,  388, 125, 32),
-        "allo_sct":           (150, 388, 120, 32),
-        "non_allo_sct":       (285, 388, 135, 32),
-        "continue_empiric_r": (225, 388, 135, 32),   # overlaps geom-wise but used on right path only
-        "continue_empiric_stable": (680, 248, 170, 34),
-        "unstable_actions":   (845, 248, 165, 90),
-
-        # ── R7: cease / stop / target ─────────────────────────────────
-        "stop_abx":          (10,  388, 125, 32),   # same row as continue_l, exclusive paths
-        "cease_allo":        (135, 456, 145, 52),
-        "cease_non_allo":    (295, 456, 145, 52),
-        "target_abx":        (390, 388, 140, 32),
-        "imaging":           (845, 356, 165, 90),
-
-        # ── R8/R9: recurrent ─────────────────────────────────────────
-        "recurrent_fever":   (670, 480, 190, 34),
-        "recurrent_actions": (650, 530, 230, 90),
-    }
-
-    # Geometry helpers
-    def cx(n):  return G[n][0] + G[n][2] / 2
-    def cy(n):  return G[n][1] + G[n][3] / 2
-    def top(n): return G[n][1]
-    def bot(n): return G[n][1] + G[n][3]
-    def lft(n): return G[n][0]
-    def rgt(n): return G[n][0] + G[n][2]
-
-    # ── Draw helpers ──────────────────────────────────────────────────────
+    # ── DRAW NODES ────────────────────────────────────────────────────────
     def N(nid, fill, label="", fs=10, bold=False, bullets=None, dashed=False):
-        x, y, w, h = G[nid]
-        return box(x, y, w, h, fill, label=label, fs=fs, bold=bold,
-                   bullets=bullets, dashed=dashed,
-                   active=act(nid), dimmed=dim(nid))
+        return node(*G[nid], fill, label=label, fs=fs, bold=bold,
+                    bullets=bullets, dashed=dashed,
+                    active=a(nid), dimmed=d(nid))
 
-    def AR(x1, y1, x2, y2, src, dst=None):
-        a = act(src); d = dim(src) or (dst and dim(dst))
-        return _line(x1, y1, x2, y2, active=a, dimmed=d)
-
-    def EL(x1, y1, x2, y2, src, dst=None, by=None, bx=None):
-        a = act(src); d = dim(src) or (dst and dim(dst))
-        return elbow(x1, y1, x2, y2, bend_y=by, bend_x=bx, active=a, dimmed=d)
-
-    def BUS_H(x1, x2, y, nodes):
-        """Draw a horizontal bus line, then drop lines with arrows to each node."""
-        s = ""
-        any_act = any(act(n) for n in nodes)
-        any_dim = all(dim(n) for n in nodes) and not any_act
-        s += _seg(x1, y, x2, y, active=any_act, dimmed=any_dim)
-        for n in nodes:
-            s += _line(cx(n), y, cx(n), top(n), active=act(n), dimmed=dim(n))
-        return s
-
-    # ════════════════════════════════════════════════════════════════════════
-    #  NODES
-    # ════════════════════════════════════════════════════════════════════════
-
-    # Headers
-    svg += N("header",   C["purple"], "Neutropaenic Sepsis Management", fs=13, bold=True)
-    svg += N("review72", C["blue"],   "Review at 72 hours empiric antibiotics", fs=10)
+    # R0-R1
+    svg += N("header",  C["purple"], "Neutropaenic Sepsis Management", fs=13, bold=True)
+    svg += N("review72", C["blue"],  "Review at 72 hours empiric antibiotics", fs=10)
 
     # R2
     svg += N("resolved_fever",   C["yellow"],
@@ -332,289 +314,219 @@ def build_svg(AN: set) -> str:
     svg += N("persistent_fever", C["pink"],
              "Persistent fever or remains clinically unstable", fs=10)
 
-    # R3 left
+    # R3
     svg += N("fever_unknown", C["yellow"], "Fever of unknown origin", fs=10)
     svg += N("liaise_id",     C["white"],  "Liaise with ID", fs=10, bold=True, dashed=True)
+    svg += N("p_stable",      C["yellow"], "Clinically stable", fs=10)
+    svg += node(*G["p_unstable"], C["pink"], fs=9, bold=True,
+                bullets=["Consider aminoglycoside",
+                         "Liaise with ID re MRO",
+                         "Repeat periph & central cultures"],
+                active=a("p_unstable"), dimmed=d("p_unstable"))
 
-    # R3 right
-    svg += N("p_stable",  C["yellow"], "Clinically stable", fs=10)
-    svg += box(*G["p_unstable"], C["pink"], fs=9, bold=True,
-               bullets=["Consider aminoglycoside",
-                        "Liaise with ID re MRO",
-                        "Repeat periph & central cultures"],
-               active=act("p_unstable"), dimmed=dim("p_unstable"))
-
-    # R4 neutro
+    # R4
     svg += N("l_neutro_resolved", C["yellow"], "Resolved neutropaenia", fs=9)
     svg += N("l_neutro_ongoing",  C["yellow"], "Ongoing neutropaenia",  fs=9)
     svg += N("r_neutro_ongoing",  C["yellow"], "Ongoing neutropaenia",  fs=9)
     svg += N("r_neutro_resolved", C["yellow"], "Resolved neutropaenia", fs=9)
+    svg += N("continue_stable",   C["green"],  "Continue empiric therapy", fs=9, bold=True)
+    svg += node(*G["unstable_box"], C["pink"], fs=9,
+                bullets=["Liaise with ID",
+                         "CT chest ± abdo/pelvis/sinus",
+                         "MRI brain if CNS signs",
+                         "Consider non-infective causes"],
+                active=a("unstable_box"), dimmed=d("unstable_box"))
 
-    # R5 entero
+    # R5
     svg += N("l_entero_yes", C["yellow"], "Enterocolitis / mucositis",    fs=9)
     svg += N("l_entero_no",  C["yellow"], "No enterocolitis / mucositis", fs=9)
     svg += N("r_entero_yes", C["yellow"], "Enterocolitis / mucositis",    fs=9)
     svg += N("r_entero_no",  C["yellow"], "No enterocolitis / mucositis", fs=9)
+    svg += node(*G["imaging_box"], C["yellow"], fs=9,
+                bullets=["Liaise with ID",
+                         "CT chest ± abdo/pelvis/sinus",
+                         "MRI brain if CNS signs",
+                         "Consider non-infective causes"],
+                active=a("imaging_box"), dimmed=d("imaging_box"))
 
-    # R6 action nodes — left path
-    svg += N("continue_empiric_l", C["green"], "Continue empiric antibiotics", fs=9, bold=True)
-    svg += N("allo_sct",           C["yellow"], "Allo-SCT patient",            fs=9)
-    svg += N("non_allo_sct",       C["yellow"], "Non-allo-SCT patient",        fs=9)
-    # stop_abx shares row/x with continue_empiric_l (exclusive paths — only one drawn)
-    svg += N("stop_abx",           C["green"],  "Stop antibiotics",            fs=10, bold=True)
-
-    # R6 right path: continue empiric (placed at r_entero_yes column)
-    svg += box(*G["continue_empiric_r"], C["green"],
-               label="Continue empiric antibiotics", fs=9, bold=True,
-               active=act("continue_empiric_r"), dimmed=dim("continue_empiric_r"))
-
-    # R6 far right: continue empiric stable / unstable actions
-    svg += N("continue_empiric_stable", C["green"], "Continue empiric therapy", fs=9, bold=True)
-    svg += box(*G["unstable_actions"], C["pink"], fs=9,
-               bullets=["Liaise with ID",
-                        "CT chest ± abdo/pelvis/sinus",
-                        "MRI brain if CNS signs",
-                        "Consider non-infective causes"],
-               active=act("unstable_actions"), dimmed=dim("unstable_actions"))
+    # R6 — mutually exclusive per path
+    svg += N("stop_abx",   C["green"],  "Stop antibiotics",            fs=9, bold=True)
+    svg += N("continue_l", C["green"],  "Continue empiric antibiotics",fs=9, bold=True)
+    svg += N("allo_sct",   C["yellow"], "Allo-SCT patient",            fs=9)
+    svg += N("non_allo",   C["yellow"], "Non-allo-SCT patient",        fs=9)
+    svg += N("continue_r", C["green"],  "Continue empiric antibiotics",fs=9, bold=True)
+    svg += N("target_abx", C["green"],  "Target antibiotics",          fs=9, bold=True)
 
     # R7
-    svg += box(*G["cease_allo"], C["yellow"],
-               label="Consider ceasing empiric abx if another cause found", fs=9,
-               active=act("cease_allo"), dimmed=dim("cease_allo"))
-    svg += box(*G["cease_non_allo"], C["yellow"],
-               label="Consider ceasing empiric antibiotics", fs=9,
-               active=act("cease_non_allo"), dimmed=dim("cease_non_allo"))
-    svg += N("target_abx", C["green"], "Target antibiotics", fs=10, bold=True)
-
-    svg += box(*G["imaging"], C["yellow"], fs=9,
-               bullets=["Liaise with ID",
-                        "CT chest ± abdo/pelvis/sinus",
-                        "MRI brain if CNS signs",
-                        "Consider non-infective causes"],
-               active=act("imaging"), dimmed=dim("imaging"))
+    svg += node(*G["cease_allo"], C["yellow"],
+                label="Consider ceasing if another cause found", fs=9,
+                active=a("cease_allo"), dimmed=d("cease_allo"))
+    svg += node(*G["cease_non_allo"], C["yellow"],
+                label="Consider ceasing empiric antibiotics", fs=9,
+                active=a("cease_non_allo"), dimmed=d("cease_non_allo"))
 
     # Recurrent
     svg += N("recurrent_fever",   C["purple"], "Recurrent fever", fs=10, bold=True)
-    svg += box(*G["recurrent_actions"], C["pink"], fs=9,
-               bullets=["Restart empiric abx & consider aminoglycoside",
-                        "Liaise with ID about MRO coverage",
-                        "Repeat peripheral & central cultures"],
-               active=act("recurrent_actions"), dimmed=dim("recurrent_actions"))
+    svg += node(*G["recurrent_actions"], C["pink"], fs=9,
+                bullets=["Restart empiric abx & consider aminoglycoside",
+                         "Liaise with ID about MRO coverage",
+                         "Repeat peripheral & central cultures"],
+                active=a("recurrent_actions"), dimmed=d("recurrent_actions"))
 
-    # ════════════════════════════════════════════════════════════════════════
-    #  ARROWS
-    # ════════════════════════════════════════════════════════════════════════
+    # ── DRAW ARROWS ───────────────────────────────────────────────────────
+    # Convenience: arrow from node bottom-centre to node top-centre
+    def A(src, dst):
+        return arrow(gcx(src), gbot(src), gcx(dst), gtop(dst),
+                     act=a(src), dim=d(src) or d(dst))
+
+    def E(src, dst, by=None, bx=None, x1=None, y1=None, x2=None, y2=None):
+        _x1 = x1 if x1 is not None else gcx(src)
+        _y1 = y1 if y1 is not None else gbot(src)
+        _x2 = x2 if x2 is not None else gcx(dst)
+        _y2 = y2 if y2 is not None else gtop(dst)
+        return elbow(_x1, _y1, _x2, _y2, by=by, bx=bx,
+                     act=a(src), dim=d(src) or d(dst))
 
     # header → review72
-    svg += AR(cx("header"), bot("header"), cx("review72"), top("review72"), "header")
+    svg += A("header", "review72")
 
-    # review72 → three branch headers via horizontal bus at y=100
-    bus_y = 100
-    svg += _seg(cx("review72"), bot("review72"), cx("review72"), bus_y,
-                active=act("review72"), dimmed=dim("review72"))
-    svg += BUS_H(cx("resolved_fever"), cx("persistent_fever"), bus_y,
-                 ["resolved_fever", "micro_defined", "persistent_fever"])
+    # review72 → three R2 branches via bus at y=95
+    bus_y = 95
+    # stem down from review72
+    svg += seg(gcx("review72"), gbot("review72"), gcx("review72"), bus_y,
+               act=a("review72"), dim=d("review72"))
+    # horizontal bus
+    lbus = gcx("resolved_fever")
+    rbus = gcx("persistent_fever")
+    svg += seg(lbus, bus_y, rbus, bus_y)
+    # drops to each branch
+    for nid in ("resolved_fever", "micro_defined", "persistent_fever"):
+        svg += arrow(gcx(nid), bus_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # resolved_fever → fever_unknown (straight down)
-    svg += AR(cx("resolved_fever"), bot("resolved_fever"),
-              cx("fever_unknown"), top("fever_unknown"), "resolved_fever")
+    # resolved_fever → fever_unknown
+    svg += A("resolved_fever", "fever_unknown")
+    # micro_defined → liaise_id
+    svg += A("micro_defined", "liaise_id")
 
-    # micro_defined → liaise_id (straight down)
-    svg += AR(cx("micro_defined"), bot("micro_defined"),
-              cx("liaise_id"), top("liaise_id"), "micro_defined")
+    # persistent_fever → p_stable / p_unstable via bus at y=156
+    pb_y = 156
+    svg += seg(gcx("persistent_fever"), gbot("persistent_fever"),
+               gcx("persistent_fever"), pb_y, act=a("persistent_fever"), dim=d("persistent_fever"))
+    svg += seg(gcx("p_stable"), pb_y, gcx("p_unstable"), pb_y)
+    for nid in ("p_stable", "p_unstable"):
+        svg += arrow(gcx(nid), pb_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # persistent_fever → p_stable / p_unstable via bus at y=168
-    pb = 168
-    svg += _seg(cx("persistent_fever"), bot("persistent_fever"),
-                cx("persistent_fever"), pb, active=act("persistent_fever"), dimmed=dim("persistent_fever"))
-    svg += BUS_H(cx("p_stable"), rgt("p_unstable"), pb, ["p_stable", "p_unstable"])
+    # p_stable → continue_stable
+    svg += A("p_stable", "continue_stable")
+    # p_unstable → unstable_box
+    svg += A("p_unstable", "unstable_box")
+    # unstable_box → imaging_box
+    svg += A("unstable_box", "imaging_box")
 
-    # p_stable → continue_empiric_stable
-    svg += AR(cx("p_stable"), bot("p_stable"),
-              cx("continue_empiric_stable"), top("continue_empiric_stable"), "p_stable")
+    # fever_unknown → l_neutro split via bus at y=212
+    lb_y = 212
+    svg += seg(gcx("fever_unknown"), gbot("fever_unknown"),
+               gcx("fever_unknown"), lb_y, act=a("fever_unknown"), dim=d("fever_unknown"))
+    svg += seg(gcx("l_neutro_resolved"), lb_y, gcx("l_neutro_ongoing"), lb_y)
+    for nid in ("l_neutro_resolved", "l_neutro_ongoing"):
+        svg += arrow(gcx(nid), lb_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # p_unstable → unstable_actions → imaging
-    svg += AR(cx("p_unstable"), bot("p_unstable"),
-              cx("unstable_actions"), top("unstable_actions"), "p_unstable")
-    svg += AR(cx("unstable_actions"), bot("unstable_actions"),
-              cx("imaging"), top("imaging"), "unstable_actions")
+    # liaise_id → r_neutro split via bus at y=212
+    svg += seg(gcx("liaise_id"), gbot("liaise_id"),
+               gcx("liaise_id"), lb_y, act=a("liaise_id"), dim=d("liaise_id"))
+    svg += seg(gcx("r_neutro_ongoing"), lb_y, gcx("r_neutro_resolved"), lb_y)
+    for nid in ("r_neutro_ongoing", "r_neutro_resolved"):
+        svg += arrow(gcx(nid), lb_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # fever_unknown → l_neutro split via bus at y=238
-    lb = 238
-    svg += _seg(cx("fever_unknown"), bot("fever_unknown"),
-                cx("fever_unknown"), lb, active=act("fever_unknown"), dimmed=dim("fever_unknown"))
-    # bus from l_neutro_resolved to l_neutro_ongoing
-    svg += BUS_H(cx("l_neutro_resolved"), cx("l_neutro_ongoing"), lb,
-                 ["l_neutro_resolved", "l_neutro_ongoing"])
+    # l_neutro_resolved → stop_abx (straight down, same col)
+    svg += arrow(gcx("l_neutro_resolved"), gbot("l_neutro_resolved"),
+                 gcx("stop_abx"), gtop("stop_abx"),
+                 act=a("l_neutro_resolved"), dim=d("l_neutro_resolved") or d("stop_abx"))
 
-    # liaise_id → r_neutro split via bus at y=238
-    svg += _seg(cx("liaise_id"), bot("liaise_id"),
-                cx("liaise_id"), lb, active=act("liaise_id"), dimmed=dim("liaise_id"))
-    svg += BUS_H(cx("r_neutro_ongoing"), cx("r_neutro_resolved"), lb,
-                 ["r_neutro_ongoing", "r_neutro_resolved"])
+    # l_neutro_ongoing → l_entero split via bus at y=266
+    le_y = 266
+    svg += seg(gcx("l_neutro_ongoing"), gbot("l_neutro_ongoing"),
+               gcx("l_neutro_ongoing"), le_y, act=a("l_neutro_ongoing"), dim=d("l_neutro_ongoing"))
+    svg += seg(gcx("l_entero_yes"), le_y, gcx("l_entero_no"), le_y)
+    for nid in ("l_entero_yes", "l_entero_no"):
+        svg += arrow(gcx(nid), le_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # l_neutro_resolved → stop_abx (straight down, same column)
-    svg += AR(cx("l_neutro_resolved"), bot("l_neutro_resolved"),
-              cx("stop_abx"), top("stop_abx"), "l_neutro_resolved", "stop_abx")
+    # l_entero_yes → continue_l
+    svg += arrow(gcx("l_entero_yes"), gbot("l_entero_yes"),
+                 gcx("continue_l"), gtop("continue_l"),
+                 act=a("l_entero_yes"), dim=d("l_entero_yes") or d("continue_l"))
 
-    # l_neutro_ongoing → l_entero split via bus at y=306
-    le = 306
-    svg += _seg(cx("l_neutro_ongoing"), bot("l_neutro_ongoing"),
-                cx("l_neutro_ongoing"), le, active=act("l_neutro_ongoing"), dimmed=dim("l_neutro_ongoing"))
-    svg += BUS_H(cx("l_entero_yes"), cx("l_entero_no"), le,
-                 ["l_entero_yes", "l_entero_no"])
-
-    # l_entero_yes → continue_empiric_l
-    svg += AR(cx("l_entero_yes"), bot("l_entero_yes"),
-              cx("continue_empiric_l"), top("continue_empiric_l"),
-              "l_entero_yes", "continue_empiric_l")
-
-    # l_entero_no → allo/non-allo via bus at y=375
-    la = 375
-    svg += _seg(cx("l_entero_no"), bot("l_entero_no"),
-                cx("l_entero_no"), la, active=act("l_entero_no"), dimmed=dim("l_entero_no"))
-    svg += BUS_H(cx("allo_sct"), cx("non_allo_sct"), la, ["allo_sct", "non_allo_sct"])
+    # l_entero_no → allo/non-allo split via bus at y=320
+    la_y = 320
+    svg += seg(gcx("l_entero_no"), gbot("l_entero_no"),
+               gcx("l_entero_no"), la_y, act=a("l_entero_no"), dim=d("l_entero_no"))
+    svg += seg(gcx("allo_sct"), la_y, gcx("non_allo"), la_y)
+    for nid in ("allo_sct", "non_allo"):
+        svg += arrow(gcx(nid), la_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
     # allo_sct → cease_allo
-    svg += AR(cx("allo_sct"), bot("allo_sct"),
-              cx("cease_allo"), top("cease_allo"), "allo_sct", "cease_allo")
-    # non_allo_sct → cease_non_allo
-    svg += AR(cx("non_allo_sct"), bot("non_allo_sct"),
-              cx("cease_non_allo"), top("cease_non_allo"), "non_allo_sct", "cease_non_allo")
+    svg += arrow(gcx("allo_sct"), gbot("allo_sct"),
+                 gcx("cease_allo"), gtop("cease_allo"),
+                 act=a("allo_sct"), dim=d("allo_sct") or d("cease_allo"))
+    # non_allo → cease_non_allo
+    svg += arrow(gcx("non_allo"), gbot("non_allo"),
+                 gcx("cease_non_allo"), gtop("cease_non_allo"),
+                 act=a("non_allo"), dim=d("non_allo") or d("cease_non_allo"))
 
-    # r_neutro_ongoing → r_entero split via bus at y=306
-    re = 306
-    svg += _seg(cx("r_neutro_ongoing"), bot("r_neutro_ongoing"),
-                cx("r_neutro_ongoing"), re, active=act("r_neutro_ongoing"), dimmed=dim("r_neutro_ongoing"))
-    svg += BUS_H(cx("r_entero_yes"), cx("r_entero_no"), re,
-                 ["r_entero_yes", "r_entero_no"])
+    # r_neutro_ongoing → r_entero split via bus at y=266
+    svg += seg(gcx("r_neutro_ongoing"), gbot("r_neutro_ongoing"),
+               gcx("r_neutro_ongoing"), le_y, act=a("r_neutro_ongoing"), dim=d("r_neutro_ongoing"))
+    svg += seg(gcx("r_entero_yes"), le_y, gcx("r_entero_no"), le_y)
+    for nid in ("r_entero_yes", "r_entero_no"):
+        svg += arrow(gcx(nid), le_y, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # r_entero_yes → continue_empiric_r
-    svg += AR(cx("r_entero_yes"), bot("r_entero_yes"),
-              cx("continue_empiric_r"), top("continue_empiric_r"),
-              "r_entero_yes", "continue_empiric_r")
+    # r_entero_yes → continue_r
+    svg += arrow(gcx("r_entero_yes"), gbot("r_entero_yes"),
+                 gcx("continue_r"), gtop("continue_r"),
+                 act=a("r_entero_yes"), dim=d("r_entero_yes") or d("continue_r"))
 
-    # r_entero_no → target_abx (elbow: right then down)
-    svg += EL(cx("r_entero_no"), bot("r_entero_no"),
-              cx("target_abx"), top("target_abx"),
-              "r_entero_no", "target_abx", by=374)
+    # r_entero_no → target_abx
+    svg += arrow(gcx("r_entero_no"), gbot("r_entero_no"),
+                 gcx("target_abx"), gtop("target_abx"),
+                 act=a("r_entero_no"), dim=d("r_entero_no") or d("target_abx"))
 
-    # r_neutro_resolved → target_abx (elbow: down to bus, across, down)
-    svg += EL(cx("r_neutro_resolved"), bot("r_neutro_resolved"),
-              cx("target_abx"), top("target_abx"),
-              "r_neutro_resolved", "target_abx", by=374)
+    # r_neutro_resolved → target_abx (elbow: down then left then down)
+    rr_y = 266   # same bus level
+    svg += elbow(gcx("r_neutro_resolved"), gbot("r_neutro_resolved"),
+                 gcx("target_abx"), gtop("target_abx"), by=rr_y,
+                 act=a("r_neutro_resolved"), dim=d("r_neutro_resolved") or d("target_abx"))
 
-    # persistent_fever → recurrent_fever (elbow right then down)
-    svg += EL(rgt("persistent_fever"), cy("persistent_fever"),
-              cx("recurrent_fever"), top("recurrent_fever"),
-              "persistent_fever", "recurrent_fever",
-              bx=rgt("persistent_fever") + 8)
+    # persistent_fever → recurrent_fever: elbow out right side then down
+    rf_bx = grgt("persistent_fever") + 12
+    svg += elbow(grgt("persistent_fever"), gcy("persistent_fever"),
+                 gcx("recurrent_fever"), gtop("recurrent_fever"),
+                 bx=rf_bx,
+                 act=a("persistent_fever"), dim=d("persistent_fever") or d("recurrent_fever"))
 
     # recurrent_fever → recurrent_actions
-    svg += AR(cx("recurrent_fever"), bot("recurrent_fever"),
-              cx("recurrent_actions"), top("recurrent_actions"),
-              "recurrent_fever", "recurrent_actions")
+    svg += A("recurrent_fever", "recurrent_actions")
 
-    # ════════════════════════════════════════════════════════════════════════
-    #  LEGEND
-    # ════════════════════════════════════════════════════════════════════════
-    ly = 700
-    items = [
-        (10,  C["green"],  "Action / recommendation"),
-        (215, C["yellow"], "Clinical decision point"),
-        (420, C["pink"],   "Urgent / unstable"),
-        (600, C["purple"], "Pathway header"),
+    # ── LEGEND ────────────────────────────────────────────────────────────
+    ly = 640
+    legend_items = [
+        (10,   C["green"],  "Action / recommendation"),
+        (230,  C["yellow"], "Clinical decision point"),
+        (450,  C["pink"],   "Urgent / unstable"),
+        (640,  C["purple"], "Pathway header"),
+        (830,  C["white"],  "▶  Active pathway highlighted"),
     ]
-    for lx, lc, lt in items:
-        svg += box(lx, ly, 195, 24, lc, label=lt, fs=9)
-
-    # Active highlight example
-    svg += box(810, ly, 200, 24, C["white"], label="  Active pathway highlighted", fs=9)
-    svg += (f'<rect x="810" y="{ly}" width="200" height="24" rx="6" '
-            f'fill="none" stroke="{C["active_stroke"]}" stroke-width="2.5"/>\n')
-    svg += f'<text x="820" y="{ly+16}" font-size="9" fill="{C["active_stroke"]}" font-family="Arial">▶</text>\n'
+    for lx, lc, lt in legend_items:
+        svg += node(lx, ly, 195, 26, lc, label=lt, fs=9)
+    # active border on last item
+    svg += (f'<rect x="830" y="{ly}" width="195" height="26" rx="7" '
+            f'fill="none" stroke="{C["act"]}" stroke-width="2.5"/>\n')
 
     svg += "</svg>\n"
     return svg
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  COPY-TO-CLIPBOARD  (SVG → canvas → PNG → clipboard, with download fallback)
-# ══════════════════════════════════════════════════════════════════════════════
-
-COPY_BLOCK = """
-<button id="copyBtn" onclick="copyChart()" style="
-    background:#2980B9; color:#fff; border:none; border-radius:6px;
-    padding:10px 22px; font-size:15px; cursor:pointer;
-    font-family:Arial,sans-serif; display:inline-flex;
-    align-items:center; gap:8px; margin-bottom:6px;">
-  <span>📋</span><span>Copy flowchart to clipboard</span>
-</button>
-<div id="copyMsg" style="font-size:13px;font-family:Arial,sans-serif;
-     color:#27ae60;min-height:20px;margin-top:4px;"></div>
-
-<script>
-async function copyChart() {
-  const msg = document.getElementById('copyMsg');
-  msg.textContent = 'Rendering…';
-  msg.style.color = '#888';
-
-  const svg = document.getElementById('flowSVG');
-  if (!svg) { msg.textContent = '⚠️ Chart SVG not found.'; return; }
-
-  const serialised = new XMLSerializer().serializeToString(svg);
-  const vb = svg.viewBox.baseVal;
-  const scale = 2;
-  const canvas = document.createElement('canvas');
-  canvas.width  = vb.width  * scale;
-  canvas.height = vb.height * scale;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(scale, scale);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, vb.width, vb.height);
-
-  const blob = new Blob([serialised], {type:'image/svg+xml;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const img  = new Image();
-
-  img.onload = async () => {
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
-
-    canvas.toBlob(async (pngBlob) => {
-      // Try modern clipboard API first
-      if (navigator.clipboard && navigator.clipboard.write) {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({'image/png': pngBlob})
-          ]);
-          msg.textContent = '✅ Copied! Paste directly into eNotes (Ctrl+V / Cmd+V).';
-          msg.style.color = '#27ae60';
-          return;
-        } catch (e) { /* fall through to download */ }
-      }
-      // Fallback: download PNG
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = 'neutropenic_sepsis_pathway.png';
-      a.click();
-      msg.textContent = '📥 Downloaded as PNG — insert the file into eNotes.';
-      msg.style.color = '#e67e22';
-    }, 'image/png');
-  };
-
-  img.onerror = () => {
-    msg.textContent = '⚠️ SVG rendering failed. Try a different browser.';
-    msg.style.color = '#e74c3c';
-  };
-  img.src = url;
-}
-</script>
-"""
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  RECOMMENDATION TEXT
+# RECOMMENDATIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
 def get_recommendations(AN):
@@ -622,26 +534,26 @@ def get_recommendations(AN):
     if "stop_abx" in AN:
         recs.append(("✅", "Stop antibiotics",
                      "Neutropaenia resolved and fever resolved — antibiotics can be discontinued."))
-    if any(x in AN for x in ("continue_empiric_l", "continue_empiric_r", "continue_empiric_stable")):
+    if any(x in AN for x in ("continue_l","continue_r","continue_stable")):
         recs.append(("💊", "Continue empiric antibiotics",
                      "Clinical situation warrants ongoing broad-spectrum cover."))
     if "cease_allo" in AN:
         recs.append(("⚠️", "Consider ceasing empiric antibiotics (Allo-SCT)",
-                     "Cease if another cause found. Discuss with ID/haematology."))
+                     "Cease if another cause found. Discuss with ID / haematology."))
     if "cease_non_allo" in AN:
         recs.append(("⚠️", "Consider ceasing empiric antibiotics (Non-allo-SCT)",
-                     "Discuss with ID/treating team."))
+                     "Discuss with ID / treating team."))
     if "target_abx" in AN:
         recs.append(("🎯", "Target antibiotics",
-                     "De-escalate to targeted therapy based on identified pathogen/source."))
-    if "p_unstable" in AN or "unstable_actions" in AN:
+                     "De-escalate to targeted therapy based on identified pathogen / source."))
+    if "p_unstable" in AN:
         recs.append(("🚨", "Clinically unstable — escalate immediately",
-                     "Consider aminoglycoside. Liaise with ID regarding MRO coverage. "
+                     "Consider aminoglycoside. Liaise with ID re MRO coverage. "
                      "Repeat peripheral and central cultures."))
-    if "imaging" in AN:
-        recs.append(("🖥️", "Consider imaging",
+    if "unstable_box" in AN:
+        recs.append(("🖥️", "Investigations",
                      "CT chest ± abdo/pelvis/sinus guided by symptoms. "
-                     "MRI brain if CNS signs/symptoms. Consider non-infective causes."))
+                     "MRI brain if CNS signs / symptoms. Consider non-infective causes."))
     if "recurrent_actions" in AN:
         recs.append(("🔄", "Recurrent fever management",
                      "Restart empiric antibiotics and consider aminoglycoside. "
@@ -650,92 +562,141 @@ def get_recommendations(AN):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  STREAMLIT UI
+# COPY-TO-CLIPBOARD JS
+# ══════════════════════════════════════════════════════════════════════════════
+
+COPY_JS = """
+<button id="copyBtn" onclick="copyChart()" style="
+    background:#2471A3;color:#fff;border:none;border-radius:7px;
+    padding:9px 20px;font-size:14px;cursor:pointer;
+    font-family:Arial,sans-serif;display:inline-flex;
+    align-items:center;gap:8px;margin-bottom:6px;">
+  <span>📋</span><span>Copy flowchart to clipboard</span>
+</button>
+<div id="copyMsg" style="font-size:12px;font-family:Arial,sans-serif;
+     min-height:18px;margin-top:3px;"></div>
+<script>
+async function copyChart() {
+  const msg = document.getElementById('copyMsg');
+  msg.style.color='#888'; msg.textContent='Rendering…';
+  const svg = document.getElementById('flowSVG');
+  if (!svg) { msg.textContent='⚠️ SVG not found.'; return; }
+  const ser = new XMLSerializer().serializeToString(svg);
+  const vb  = svg.viewBox.baseVal;
+  const sc  = 2;
+  const cv  = document.createElement('canvas');
+  cv.width  = vb.width * sc;
+  cv.height = vb.height * sc;
+  const ctx = cv.getContext('2d');
+  ctx.scale(sc, sc);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, vb.width, vb.height);
+  const blob = new Blob([ser], {type:'image/svg+xml;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+  img.onload = async () => {
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    cv.toBlob(async (pngBlob) => {
+      if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({'image/png': pngBlob})]);
+          msg.style.color='#1e8449';
+          msg.textContent='✅ Copied! Paste into eNotes with Ctrl+V / Cmd+V.';
+          return;
+        } catch(e) {}
+      }
+      // fallback: download
+      const a = document.createElement('a');
+      a.href = cv.toDataURL('image/png');
+      a.download = 'neutropenic_sepsis_pathway.png';
+      a.click();
+      msg.style.color='#e67e22';
+      msg.textContent='📥 Saved as PNG — insert into eNotes manually.';
+    }, 'image/png');
+  };
+  img.onerror = () => { msg.style.color='#c0392b'; msg.textContent='⚠️ Render failed.'; };
+  img.src = url;
+}
+</script>
+"""
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STREAMLIT UI
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.title("🧬 Neutropaenic Sepsis Management")
 st.caption("ADHB Antimicrobial Stewardship — Interactive Decision Support Tool")
 st.markdown("---")
 
-col_form, col_chart = st.columns([1, 2.8], gap="large")
+col_form, col_chart = st.columns([1, 3.2], gap="large")
 
 with col_form:
     st.subheader("Patient Assessment")
 
     fever_resolved = st.radio(
         "**Fever status at 72-hour review**",
-        options=["Resolved (afebrile ≥48h, clinically stable)",
-                 "Persistent / recurrent fever"],
-        index=0
+        ["Resolved (afebrile ≥48h, clinically stable)",
+         "Persistent / recurrent fever"],
     ) == "Resolved (afebrile ≥48h, clinically stable)"
 
     neutro_resolved = st.radio(
         "**Neutropaenia status**",
-        options=["Resolved", "Ongoing"],
-        index=1
+        ["Resolved", "Ongoing"],
+        index=1,
     ) == "Resolved"
 
     micro_defined = st.checkbox(
-        "**Microbiologically or clinically defined infection identified**",
-        value=False
+        "**Microbiologically or clinically defined infection**", value=False
     )
 
-    stable_disabled = fever_resolved or micro_defined
     stable = st.radio(
         "**Clinical stability**",
-        options=["Clinically stable", "Clinically unstable"],
-        index=0,
-        disabled=stable_disabled,
-        help="Only applicable for persistent fever without a defined infection source"
+        ["Clinically stable", "Clinically unstable"],
+        disabled=(fever_resolved or micro_defined),
+        help="Only relevant for persistent fever without a defined infection source",
     ) == "Clinically stable"
 
-    entero_disabled = neutro_resolved and not micro_defined
     enterocolitis = st.checkbox(
-        "**Enterocolitis or significant mucositis**",
-        value=False,
-        disabled=entero_disabled
+        "**Enterocolitis or significant mucositis**", value=False,
+        disabled=(neutro_resolved and not micro_defined),
     )
 
-    allo_disabled = enterocolitis or neutro_resolved
     allo_sct = st.checkbox(
-        "**Allo-SCT patient**",
-        value=False,
-        disabled=allo_disabled,
-        help="Relevant when ongoing neutropaenia, no enterocolitis/mucositis, resolved fever"
+        "**Allo-SCT patient**", value=False,
+        disabled=(enterocolitis or neutro_resolved),
+        help="Relevant when ongoing neutropaenia, no enterocolitis, resolved fever",
     )
 
     st.markdown("---")
     st.caption(
-        "ℹ️ All decisions should be made in clinical context and in consultation "
-        "with Infectious Diseases as appropriate."
+        "ℹ️ All decisions should be made in clinical context. "
+        "Consult Infectious Diseases as appropriate."
     )
 
 with col_chart:
-    # Determine active nodes
     AN = determine_pathway(
         fever_resolved=fever_resolved,
         neutro_resolved=neutro_resolved,
         stable=stable,
         enterocolitis=enterocolitis,
         allo_sct=allo_sct,
-        micro_defined=micro_defined
+        micro_defined=micro_defined,
     )
 
     svg_str = build_svg(AN)
 
-    full_html = f"""<!DOCTYPE html>
-<html><head>
-<style>body{{margin:0;padding:4px;background:#fff;}}</style>
-</head><body>
-{COPY_BLOCK}
-<div style="overflow-x:auto;margin-top:4px;">
-{svg_str}
-</div>
+    html = f"""<!DOCTYPE html>
+<html><head><style>body{{margin:0;padding:4px;background:#fff}}</style></head>
+<body>
+{COPY_JS}
+<div style="overflow-x:auto;margin-top:4px">{svg_str}</div>
 </body></html>"""
 
-    components.html(full_html, height=870, scrolling=True)
+    components.html(html, height=800, scrolling=True)
 
-# ── Recommendations ──────────────────────────────────────────────────────────
+# Recommendations
 st.markdown("---")
 st.subheader("📋 Recommended Actions")
 
@@ -744,7 +705,7 @@ if recs:
     for icon, title, detail in recs:
         st.markdown(f"**{icon} {title}**  \n{detail}")
 else:
-    st.info("Select patient parameters to see tailored recommendations.")
+    st.info("Select patient parameters to see recommendations.")
 
 st.markdown("---")
 st.caption("Based on ADHB Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.")
