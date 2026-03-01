@@ -11,7 +11,44 @@ st.set_page_config(
     page_icon="🧬",
     layout="wide"
 )
+# =============================================================================
+# Authentication (Optional - set password in Streamlit secrets)
+# =============================================================================
 
+def check_password():
+    """Returns True if the user has entered the correct password."""
+    
+    # If no password is set in secrets, skip authentication
+    if "password" not in st.secrets:
+        return True
+    
+    def password_entered():
+        """Checks whether the password entered is correct."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        st.caption("Contact your AMS team for access")
+        return False
+    
+    elif not st.session_state["password_correct"]:
+        # Password incorrect
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        st.error("😕 Incorrect password")
+        return False
+    
+    else:
+        # Password correct
+        return True
 # ══════════════════════════════════════════════════════════════════════════════
 # COLOURS
 # ══════════════════════════════════════════════════════════════════════════════
