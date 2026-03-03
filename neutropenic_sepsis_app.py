@@ -29,9 +29,9 @@ C = {
     "persistent_text":  "#FFFFFF",
 
     # Lane background tints (very subtle)
-    "lane_l":  "#F5EEF8",   # pale lavender  — fever unknown path
-    "lane_m":  "#EAF2FF",   # pale blue      — micro-defined path
-    "lane_r":  "#FEF9E7",   # pale amber     — persistent path
+    "lane_l":  "#F9F4FC",   # pale lavender  — fever unknown path
+    "lane_m":  "#F2F8FF",   # pale blue      — micro-defined path
+    "lane_r":  "#FFFDF5",   # pale amber     — persistent path
 
     # Decision / condition nodes
     "decision_fill":   "#FDFEFE",
@@ -58,7 +58,7 @@ C = {
 
     # Connectors
     "ol":   "#7F8C8D",
-    "act":  "#C0392B",
+    "act":  "#1A6B5E",   # dark teal — active pathway highlight
     "dim_fill":   "#F8F9F9",
     "dim_stroke": "#D5D8DC",
     "dim_text":   "#D5D8DC",
@@ -98,7 +98,7 @@ def node(x, y, w, h, fill, stroke, label="", fs=10, bold=False, text_color="#111
     if dimmed:
         fill, stroke, text_color, sw = C["dim_fill"], C["dim_stroke"], C["dim_text"], 1
     elif active:
-        stroke, sw = C["act"], 3
+        stroke, sw = C["act"], 2
     s = rect(x, y, w, h, fill, stroke, sw=sw, rx=rx, dash=dashed)
     lh = fs + 3.5
     fw = "bold" if bold else "normal"
@@ -117,18 +117,18 @@ def node(x, y, w, h, fill, stroke, label="", fs=10, bold=False, text_color="#111
 
 def arrow(x1, y1, x2, y2, act=False, dim=False):
     clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 2.5 if act else 1.3
+    sw  = 1.8 if act else 1.3
     mk  = f'url(#arr_{"a" if act else "n"})'
     return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
 
 def seg(x1, y1, x2, y2, act=False, dim=False):
     clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 2.5 if act else 1.3
+    sw  = 1.8 if act else 1.3
     return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}"/>\n'
 
 def poly(pts, act=False, dim=False):
     clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 2.5 if act else 1.3
+    sw  = 1.8 if act else 1.3
     s   = " ".join(f"{x},{y}" for x,y in pts)
     mk  = f'url(#arr_{"a" if act else "n"})'
     return f'<polyline points="{s}" fill="none" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
@@ -229,7 +229,7 @@ def build_svg(AN):
     def a(n): return n in AN
     def d(n): return len(AN) > 2 and n not in AN
 
-    W, H = 1260, 660
+    W, H = 1260, 720
 
     # ── Column centres ────────────────────────────────────────────────────
     CA = 68     # stop_abx / l_neutro_resolved
@@ -247,7 +247,7 @@ def build_svg(AN):
     # ── Lane boundaries (for background panels) ───────────────────────────
     LANE_PAD   = 6
     LANE_TOP   = 88     # top of lane backgrounds (below review72)
-    LANE_BOT   = 590    # bottom of lane backgrounds
+    LANE_BOT   = 640    # bottom of lane backgrounds
     # Left lane: CA to CC area
     L_LANE_X   = 12
     L_LANE_W   = CD - 40 - 12          # ~388
@@ -276,36 +276,36 @@ def build_svg(AN):
     G["p_unstable"]    = (R_LANE_X + (R_LANE_W - 10) // 2 + 10, 144, (R_LANE_W - 10) // 2, 52)
 
     # R4: liaise_id
-    G["liaise_id"] = (M_LANE_X + 4, 198, M_LANE_W - 12, 28)  # dashed
+    G["liaise_id"] = (M_LANE_X + 4, 208, M_LANE_W - 12, 28)  # dashed
 
     # R5: neutropaenia status
-    G["l_neutro_resolved"] = (cx(CA, NW), 246, NW, 30)
-    G["l_neutro_ongoing"]  = (cx(CC, NW), 246, NW, 30)
-    G["r_neutro_ongoing"]  = (cx(CE, NW), 246, NW, 30)
-    G["r_neutro_resolved"] = (cx(CG, NW), 246, NW, 30)
-    G["imaging_box"]       = (R_LANE_X,   242, R_LANE_W, 96)
+    G["l_neutro_resolved"] = (cx(CA, NW), 262, NW, 30)
+    G["l_neutro_ongoing"]  = (cx(CC, NW), 262, NW, 30)
+    G["r_neutro_ongoing"]  = (cx(CE, NW), 262, NW, 30)
+    G["r_neutro_resolved"] = (cx(CG, NW), 262, NW, 30)
+    G["imaging_box"]       = (R_LANE_X,   258, R_LANE_W, 96)
 
     # R6: enterocolitis (tighter height)
-    G["l_entero_yes"] = (cx(CB, NW), 294, NW, 48)
-    G["l_entero_no"]  = (cx(CC, NW), 294, NW, 48)
-    G["r_entero_yes"] = (cx(CE, NW), 294, NW, 48)
-    G["r_entero_no"]  = (cx(CF, NW), 294, NW, 48)
+    G["l_entero_yes"] = (cx(CB, NW), 316, NW, 48)
+    G["l_entero_no"]  = (cx(CC, NW), 316, NW, 48)
+    G["r_entero_yes"] = (cx(CE, NW), 316, NW, 48)
+    G["r_entero_no"]  = (cx(CF, NW), 316, NW, 48)
 
     # R7: action nodes — terminal — slightly taller, stronger visual weight
-    G["stop_abx"]   = (cx(CA, NW),  358, NW,  34)
-    G["continue_l"] = (cx(CB, MW),  354, MW,  42)
-    G["allo_sct"]   = (cx(CC, NW),  358, NW,  34)
-    G["non_allo"]   = (cx(CD, NW),  358, NW,  34)
-    G["continue_r"] = (cx(CE, MW),  354, MW,  42)
-    G["target_abx"] = (cx(CG, NW),  358, NW,  34)
+    G["stop_abx"]   = (cx(CA, NW),  390, NW,  34)
+    G["continue_l"] = (cx(CB, MW),  386, MW,  42)
+    G["allo_sct"]   = (cx(CC, NW),  390, NW,  34)
+    G["non_allo"]   = (cx(CD, NW),  390, NW,  34)
+    G["continue_r"] = (cx(CE, MW),  386, MW,  42)
+    G["target_abx"] = (cx(CG, NW),  390, NW,  34)
 
     # R8: cease nodes
-    G["cease_allo"]     = (cx(CC, MW), 412, MW, 52)
-    G["cease_non_allo"] = (410,        412, MW, 38)
+    G["cease_allo"]     = (cx(CC, MW), 450, MW, 52)
+    G["cease_non_allo"] = (410,        450, MW, 38)
 
     # Recurrent fever (same column as target_abx)
-    G["recurrent_fever"] = (cx(CG, NW + 60), 416, NW + 60, 30)
-    G["recurrent_box"]   = (cx(CG, NW + 120), 460, NW + 120, 86)
+    G["recurrent_fever"] = (cx(CG, NW + 60), 454, NW + 60, 30)
+    G["recurrent_box"]   = (cx(CG, NW + 120), 500, NW + 120, 86)
 
     # ── Helpers ───────────────────────────────────────────────────────────
     def gx(n):   return G[n][0]
@@ -343,24 +343,15 @@ def build_svg(AN):
     M_lc = C["lane_m"] if not d("micro_defined") else C["dim_fill"]
     R_lc = C["lane_r"] if not d("persistent_fever") else C["dim_fill"]
 
-    svg += lane_bg(L_LANE_X, LANE_TOP, L_LANE_W, LANE_BOT - LANE_TOP, L_lc,
-                   "FEVER UNKNOWN PATH", "#9B59B6")
-    svg += lane_bg(M_LANE_X, LANE_TOP, M_LANE_W, LANE_BOT - LANE_TOP, M_lc,
-                   "MICRO-DEFINED PATH", "#2E86C1")
-    svg += lane_bg(R_LANE_X, LANE_TOP, R_LANE_W, LANE_BOT - LANE_TOP, R_lc,
-                   "PERSISTENT FEVER PATH", "#C0392B")
+    svg += lane_bg(L_LANE_X, LANE_TOP, L_LANE_W, LANE_BOT - LANE_TOP, L_lc)
+    svg += lane_bg(M_LANE_X, LANE_TOP, M_LANE_W, LANE_BOT - LANE_TOP, M_lc)
+    svg += lane_bg(R_LANE_X, LANE_TOP, R_LANE_W, LANE_BOT - LANE_TOP, R_lc)
 
-    # Subtle horizontal row bands (alternating, very faint)
-    ROW_BANDS = [
-        (240, 40,  "#EAECEE"),   # neutropaenia row
-        (288, 60,  "#F2F3F4"),   # enterocolitis row
-        (348, 56,  "#EAECEE"),   # action row
-    ]
-    for ry, rh, rc in ROW_BANDS:
-        svg += row_band(0, ry, W, rh, rc)
+    # Single faint action row band — scoped to left+mid lanes only, very subtle
+    svg += row_band(L_LANE_X, 382, R_LANE_X - L_LANE_X - 8, 52, "#E8EAF0")
 
     # Vertical lane dividers
-    svg += divider(M_LANE_X - 2, LANE_TOP + 46, 550)
+    svg += divider(M_LANE_X - 2, LANE_TOP + 46, 600)
     # Right divider stops at imaging box top to avoid intersecting it
     svg += divider(R_LANE_X - 2, LANE_TOP + 46, 238)
 
@@ -520,7 +511,7 @@ def build_svg(AN):
                  act=a("micro_defined"), dim=d("micro_defined") or d("liaise_id"))
 
     # fever_unknown → l_neutro split
-    bus3 = 234
+    bus3 = 250
     svg += seg(gcx("fever_unknown"), gbot("fever_unknown"), gcx("fever_unknown"), bus3,
                act=a("fever_unknown"), dim=d("fever_unknown"))
     svg += seg(gcx("l_neutro_resolved"), bus3, gcx("l_neutro_ongoing"), bus3)
@@ -548,7 +539,7 @@ def build_svg(AN):
                  act=a("l_neutro_resolved"), dim=d("l_neutro_resolved") or d("stop_abx"))
 
     # l_neutro_ongoing → entero split
-    bus4 = 282
+    bus4 = 304
     svg += seg(gcx("l_neutro_ongoing"), gbot("l_neutro_ongoing"), gcx("l_neutro_ongoing"), bus4,
                act=a("l_neutro_ongoing"), dim=d("l_neutro_ongoing"))
     svg += seg(gcx("l_entero_yes"), bus4, gcx("l_entero_no"), bus4)
@@ -576,7 +567,7 @@ def build_svg(AN):
                  act=a("l_entero_yes"), dim=d("l_entero_yes") or d("continue_l"))
 
     # l_entero_no → allo/non_allo split
-    bus5 = 347
+    bus5 = 378
     svg += seg(gcx("l_entero_no"), gbot("l_entero_no"), gcx("l_entero_no"), bus5,
                act=a("l_entero_no"), dim=d("l_entero_no"))
     svg += seg(gcx("allo_sct"), bus5, gcx("non_allo"), bus5)
@@ -625,7 +616,7 @@ def build_svg(AN):
                  act=a("recurrent_fever"), dim=d("recurrent_fever") or d("recurrent_box"))
 
     # ── LEGEND ────────────────────────────────────────────────────────────
-    ly = 608
+    ly = 668
     legend_items = [
         (C["action_stop"],    C["action_stop"],    C["action_stop_t"],  "Stop / discharge"),
         (C["action_cont"],    C["action_cont"],    C["action_cont_t"],  "Continue empiric"),
