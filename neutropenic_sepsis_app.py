@@ -125,6 +125,8 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
             if neutro_resolved:
                 AN.add("r_neutro_resolved")
                 AN.add("target_abx")
+                AN.add("recurrent_fever")
+                AN.add("recurrent_box")
             else:
                 AN.add("r_neutro_ongoing")
                 if enterocolitis:
@@ -133,6 +135,8 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
                 else:
                     AN.add("r_entero_no")
                     AN.add("target_abx")
+                    AN.add("recurrent_fever")
+                    AN.add("recurrent_box")
         else:
             # Left path: fever of unknown origin
             AN.add("fever_unknown")
@@ -155,11 +159,8 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
     else:
         # Right path: persistent fever
         AN.add("persistent_fever")
-        AN.add("recurrent_fever")
-        AN.add("recurrent_box")
         if stable:
             AN.add("p_stable")
-            AN.add("continue_stable")
         else:
             AN.add("p_unstable")
             AN.add("imaging_box")
@@ -266,7 +267,6 @@ def build_svg(AN):
     G["r_neutro_resolved"] = (cx(CG, NW), 252, NW, 32)   # 755–855
 
     # Right section R5 level
-    G["continue_stable"]  = (875, 252, 165, 32)
     G["imaging_box"]      = (1050, 252, 175, 100)
 
     # R7: enterocolitis — 4 nodes (taller to fit 2-line text)
@@ -288,10 +288,10 @@ def build_svg(AN):
     G["cease_non_allo"]   = (405, 444, MW, 40)             # 405–545
 
     # Recurrent fever — sits under right section
-    G["recurrent_fever"]  = (875, 444, 345, 32)
+    G["recurrent_fever"]  = (695, 444, 220, 32)
 
     # Recurrent actions box — spans full right section width
-    G["recurrent_box"]    = (875, 490, 345, 80)
+    G["recurrent_box"]    = (670, 490, 270, 90)
 
     # ── Helpers ──────────────────────────────────────────────────────────
     def gx(n):   return G[n][0]
@@ -349,7 +349,6 @@ def build_svg(AN):
     svg += N("l_neutro_ongoing",  C["white"], "Ongoing neutropaenia",  fs=9)
     svg += N("r_neutro_ongoing",  C["white"], "Ongoing neutropaenia",  fs=9)
     svg += N("r_neutro_resolved", C["white"], "Resolved neutropaenia", fs=9)
-    svg += N("continue_stable",   C["yellow"], "Continue empiric therapy", fs=9)
 
     # R4 liaise_id (drawn after neutro so it's above them visually in SVG order)
     svg += N("liaise_id", C["white"], "Liaise with ID", fs=9, dashed=True)
@@ -420,18 +419,15 @@ def build_svg(AN):
     for nid in ("p_stable", "p_unstable"):
         svg += arrow(gcx(nid), bus2, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
 
-    # p_stable → continue_stable (straight down, same column)
-    svg += arrow(gcx("p_stable"), gbot("p_stable"), gcx("continue_stable"), gtop("continue_stable"),
-                 act=a("p_stable"), dim=d("p_stable") or d("continue_stable"))
 
     # p_unstable → imaging_box (straight down, same column)
     svg += arrow(gcx("p_unstable"), gbot("p_unstable"), gcx("imaging_box"), gtop("imaging_box"),
                  act=a("p_unstable"), dim=d("p_unstable") or d("imaging_box"))
 
-    # persistent_fever → recurrent_fever (straight down from centre of right section)
-    svg += arrow(gcx("persistent_fever"), gbot("persistent_fever"),
+    # target_abx → recurrent_fever (straight down)
+    svg += arrow(gcx("target_abx"), gbot("target_abx"),
                  gcx("recurrent_fever"), gtop("recurrent_fever"),
-                 act=a("persistent_fever"), dim=d("persistent_fever") or d("recurrent_fever"))
+                 act=a("target_abx"), dim=d("target_abx") or d("recurrent_fever"))
 
     # recurrent_fever → recurrent_box
     svg += arrow(gcx("recurrent_fever"), gbot("recurrent_fever"),
@@ -546,10 +542,10 @@ def get_recommendations(AN):
     if "stop_abx" in AN:
         recs.append(("✅", "Stop antibiotics",
                      "Neutropaenia and fever both resolved — antibiotics can be discontinued."))
-    if any(x in AN for x in ("continue_l","continue_r","continue_stable")):
+    if any(x in AN for x in ("continue_l","continue_r")):
         recs.append(("💊", "Continue empiric antibiotics",
                      "Clinical situation warrants ongoing broad-spectrum cover."))
-    if "p_stable" in AN and "continue_stable" in AN:
+    if "p_stable" in AN:
         recs.append(("💊", "Continue empiric therapy",
                      "Fever persisting but patient is clinically stable — continue current empiric regimen."))
     if "cease_allo" in AN:
