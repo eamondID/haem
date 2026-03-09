@@ -1,6 +1,6 @@
 """
-Neutropaenic Sepsis Management — Interactive Decision Support
-ADHB Antimicrobial Stewardship  v2 — Enhanced Visualisation
+Neutropaenic Sepsis Management — BMJ Infographic Style
+ADHB Antimicrobial Stewardship
 """
 
 import streamlit as st
@@ -9,158 +9,8 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="Neutropaenic Sepsis Management",
     page_icon="🧬",
-    layout="wide"
+    layout="wide",
 )
-
-# ══════════════════════════════════════════════════════════════════════════════
-# DESIGN TOKENS
-# ══════════════════════════════════════════════════════════════════════════════
-C = {
-    # Node fills — cleaner, more intentional palette
-    "hdr_fill":    "#7B3FA0",   # deep purple — main title
-    "hdr_text":    "#FFFFFF",
-    "review_fill": "#2E86C1",   # strong blue — 72hr review
-    "review_text": "#FFFFFF",
-
-    # Branch header fills (coloured per section)
-    "resolved_fill":    "#6C3483",   # deep purple
-    "resolved_text":    "#FFFFFF",
-    "persistent_fill":  "#A93226",   # deep red
-    "persistent_text":  "#FFFFFF",
-
-    # Lane background tints (very subtle)
-    "lane_l":  "#F9F4FC",   # pale lavender  — fever unknown path
-    "lane_m":  "#F2F8FF",   # pale blue      — micro-defined path
-    "lane_r":  "#FFFDF5",   # pale amber     — persistent path
-
-    # Decision / condition nodes
-    "decision_fill":   "#FDFEFE",
-    "decision_stroke": "#5D6D7E",
-
-    # Action nodes (terminal)
-    "action_stop":     "#1E8449",   # dark green — Stop
-    "action_stop_t":   "#FFFFFF",
-    "action_cont":     "#1A5276",   # dark navy  — Continue empiric
-    "action_cont_t":   "#FFFFFF",
-    "action_target":   "#117A65",   # teal       — Target
-    "action_target_t": "#FFFFFF",
-    "action_cease":    "#7D6608",   # dark gold  — Cease / consider
-    "action_cease_t":  "#FFFFFF",
-
-    # Urgent / unstable
-    "urgent_fill":     "#F1948A",
-    "urgent_dark":     "#922B21",   # deep red for p_unstable
-
-    # Recurrent
-    "recurrent_fill":  "#7B3FA0",
-    "recurrent_text":  "#FFFFFF",
-    "recurrent_box":   "#FDEDEC",
-
-    # Connectors
-    "ol":   "#7F8C8D",
-    "act":  "#1A6B5E",   # dark teal — active pathway highlight
-    "dim_fill":   "#F8F9F9",
-    "dim_stroke": "#D5D8DC",
-    "dim_text":   "#D5D8DC",
-
-    # Label text on branch lines
-    "label_text": "#5D6D7E",
-}
-
-FONT = "Arial, Helvetica, sans-serif"
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SVG PRIMITIVES
-# ══════════════════════════════════════════════════════════════════════════════
-
-def esc(s):
-    return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-
-def _wrap(text, box_w, fs):
-    cw  = fs * 0.54
-    mc  = max(1, int((box_w - 16) / cw))
-    words, lines, cur = text.split(), [], ""
-    for w in words:
-        t = (cur + " " + w).strip()
-        if len(t) <= mc: cur = t
-        else:
-            if cur: lines.append(cur)
-            cur = w
-    if cur: lines.append(cur)
-    return lines or [text]
-
-def rect(x, y, w, h, fill, stroke, sw=1.5, rx=7, dash=False):
-    d = ' stroke-dasharray="5,3"' if dash else ""
-    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{d}/>\n'
-
-def node(x, y, w, h, fill, stroke, label="", fs=10, bold=False, text_color="#111",
-         bullets=None, active=False, dimmed=False, dashed=False, sw=1.5, rx=7):
-    if dimmed:
-        fill, stroke, text_color, sw = C["dim_fill"], C["dim_stroke"], C["dim_text"], 1
-    elif active:
-        stroke, sw = C["act"], 2
-    s = rect(x, y, w, h, fill, stroke, sw=sw, rx=rx, dash=dashed)
-    lh = fs + 3.5
-    fw = "bold" if bold else "normal"
-    if bullets:
-        tot = len(bullets) * lh
-        ty0 = y + max(fs + 2, (h - tot) / 2 + fs)
-        for i, b in enumerate(bullets):
-            s += f'<text x="{x+10}" y="{ty0+i*lh}" font-size="{fs}" fill="{text_color}" font-family="{FONT}">• {esc(b)}</text>\n'
-    elif label:
-        lines = _wrap(label, w, fs)
-        tot   = len(lines) * lh
-        ty0   = y + (h - tot) / 2 + fs
-        for i, ln in enumerate(lines):
-            s += f'<text x="{x+w/2}" y="{ty0+i*lh}" font-size="{fs}" font-weight="{fw}" fill="{text_color}" font-family="{FONT}" text-anchor="middle">{esc(ln)}</text>\n'
-    return s
-
-def arrow(x1, y1, x2, y2, act=False, dim=False):
-    clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 1.8 if act else 1.3
-    mk  = f'url(#arr_{"a" if act else "n"})'
-    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
-
-def seg(x1, y1, x2, y2, act=False, dim=False):
-    clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 1.8 if act else 1.3
-    return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{clr}" stroke-width="{sw}"/>\n'
-
-def poly(pts, act=False, dim=False):
-    clr = C["act"] if act else (C["dim_stroke"] if dim else C["ol"])
-    sw  = 1.8 if act else 1.3
-    s   = " ".join(f"{x},{y}" for x,y in pts)
-    mk  = f'url(#arr_{"a" if act else "n"})'
-    return f'<polyline points="{s}" fill="none" stroke="{clr}" stroke-width="{sw}" marker-end="{mk}"/>\n'
-
-def branch_label(x, y, text, act=False, dim=False):
-    """Small italic label on a branch arrow — with white background pill for readability."""
-    clr = C["act"] if act else (C["dim_text"] if dim else C["label_text"])
-    cw = 5.2 * len(text)  # approximate text width
-    rx, ry, rw, rh = x - cw/2 - 3, y - 9, cw + 6, 11
-    bg = f'<rect x="{rx}" y="{ry}" width="{rw}" height="{rh}" rx="3" fill="white" opacity="0.85"/>\n'
-    txt = f'<text x="{x}" y="{y}" font-size="8.5" font-style="italic" fill="{clr}" font-family="{FONT}" text-anchor="middle">{esc(text)}</text>\n'
-    return bg + txt
-
-def lane_bg(x, y, w, h, fill, label="", label_color="#999"):
-    """Subtle lane background rectangle with optional vertical label."""
-    s = f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{fill}" stroke="none"/>\n'
-    if label:
-        tx = x + 10
-        ty = y + h // 2
-        s += (f'<text x="{tx}" y="{ty}" font-size="8" fill="{label_color}" '
-              f'font-family="{FONT}" text-anchor="middle" '
-              f'transform="rotate(-90,{tx},{ty})" opacity="0.6">{esc(label)}</text>\n')
-    return s
-
-def row_band(x, y, w, h, fill):
-    """Subtle horizontal band for row-level visual grouping."""
-    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="none"/>\n'
-
-def divider(x, y1, y2, dim=False):
-    """Thin vertical lane divider."""
-    clr = "#D5D8DC" if dim else "#BFC9CA"
-    return f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{clr}" stroke-width="1" stroke-dasharray="3,4"/>\n'
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PATHWAY LOGIC
@@ -169,481 +19,42 @@ def divider(x, y1, y2, dim=False):
 def determine_pathway(fever_resolved, neutro_resolved, stable,
                       enterocolitis, allo_sct, micro_defined):
     AN = {"header", "review72"}
-
     if fever_resolved:
         AN.add("resolved_fever")
         if micro_defined:
-            AN.add("micro_defined")
-            AN.add("liaise_id")
+            AN.add("micro_defined"); AN.add("liaise_id")
             if neutro_resolved:
-                AN.add("r_neutro_resolved")
-                AN.add("target_abx")
-                AN.add("recurrent_fever")
-                AN.add("recurrent_box")
+                AN.add("r_neutro_resolved"); AN.add("target_abx")
+                AN.add("recurrent_fever");   AN.add("recurrent_box")
             else:
                 AN.add("r_neutro_ongoing")
                 if enterocolitis:
-                    AN.add("r_entero_yes")
-                    AN.add("continue_r")
+                    AN.add("r_entero_yes"); AN.add("continue_r")
                 else:
-                    AN.add("r_entero_no")
-                    AN.add("target_abx")
-                    AN.add("recurrent_fever")
-                    AN.add("recurrent_box")
+                    AN.add("r_entero_no"); AN.add("target_abx")
+                    AN.add("recurrent_fever"); AN.add("recurrent_box")
         else:
             AN.add("fever_unknown")
             if neutro_resolved:
-                AN.add("l_neutro_resolved")
-                AN.add("stop_abx")
+                AN.add("l_neutro_resolved"); AN.add("stop_abx")
             else:
                 AN.add("l_neutro_ongoing")
                 if enterocolitis:
-                    AN.add("l_entero_yes")
-                    AN.add("continue_l")
+                    AN.add("l_entero_yes"); AN.add("continue_l")
                 else:
                     AN.add("l_entero_no")
                     if allo_sct:
-                        AN.add("allo_sct")
-                        AN.add("cease_allo")
+                        AN.add("allo_sct"); AN.add("cease_allo")
                     else:
-                        AN.add("non_allo")
-                        AN.add("cease_non_allo")
+                        AN.add("non_allo"); AN.add("cease_non_allo")
     else:
         AN.add("persistent_fever")
         if stable:
             AN.add("p_stable")
         else:
-            AN.add("p_unstable")
-            AN.add("imaging_box")
-
+            AN.add("p_unstable"); AN.add("imaging_box")
     return AN
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SVG BUILD
-# ══════════════════════════════════════════════════════════════════════════════
-
-NW = 105    # narrow node width
-MW = 145    # medium (continue empiric)
-
-def build_svg(AN):
-    def a(n): return n in AN
-    def d(n): return len(AN) > 2 and n not in AN
-
-    W, H = 1260, 780
-
-    # ── Column centres ────────────────────────────────────────────────────
-    CA = 68     # stop_abx / l_neutro_resolved
-    CB = 200    # continue_l / l_entero_yes
-    CC = 328    # allo_sct / l_entero_no / l_neutro_ongoing
-    CD = 440    # non_allo
-    CE = 568    # continue_r / r_entero_yes / r_neutro_ongoing
-    CF = 700    # r_entero_no
-    CG = 810    # target_abx / r_neutro_resolved / recurrent
-    CH = 975    # p_stable
-    CI = 1135   # p_unstable / imaging_box
-
-    def cx(c, w): return c - w // 2
-
-    # ── Lane boundaries (for background panels) ───────────────────────────
-    LANE_PAD   = 6
-    LANE_TOP   = 88     # top of lane backgrounds (below review72)
-    LANE_BOT   = 690    # bottom of lane backgrounds
-    # Left lane: CA to CC area
-    L_LANE_X   = 12
-    L_LANE_W   = CD - 40 - 12          # ~388
-    # Mid lane: CE to CG area
-    M_LANE_X   = CD - 30               # ~410
-    M_LANE_W   = CG + NW//2 + 15 - M_LANE_X   # ~460
-    # Right lane
-    R_LANE_X   = M_LANE_X + M_LANE_W + 8
-    R_LANE_W   = W - R_LANE_X - 12
-
-    # ── Geometry dict ─────────────────────────────────────────────────────
-    G = {}
-
-    # Header / review rows
-    G["header"]   = (370, 8,  520, 38)
-    G["review72"] = (300, 56, 660, 28)
-
-    # R2: branch headers
-    G["resolved_fever"]   = (L_LANE_X,  92, R_LANE_X - L_LANE_X - 8, 40)
-    G["persistent_fever"] = (R_LANE_X,  92, R_LANE_W,  40)
-
-    # R3: sub-branch nodes
-    G["fever_unknown"] = (L_LANE_X,  166, L_LANE_W // 2 + 30, 32)
-    G["micro_defined"] = (M_LANE_X,  164, M_LANE_W - 4, 40)   # dashed
-    G["p_stable"]      = (R_LANE_X,  166, (R_LANE_W - 10) // 2, 32)
-    G["p_unstable"]    = (R_LANE_X + (R_LANE_W - 10) // 2 + 10, 162, (R_LANE_W - 10) // 2, 52)
-
-    # R4: liaise_id
-    G["liaise_id"] = (M_LANE_X + 4, 216, M_LANE_W - 12, 28)  # dashed
-
-    # R5: neutropaenia status
-    G["l_neutro_resolved"] = (cx(CA, NW), 278, NW, 30)
-    G["l_neutro_ongoing"]  = (cx(CC, NW), 278, NW, 30)
-    G["r_neutro_ongoing"]  = (cx(CE, NW), 278, NW, 30)
-    G["r_neutro_resolved"] = (cx(CG, NW), 278, NW, 30)
-    G["imaging_box"]       = (R_LANE_X,   258, R_LANE_W, 112)
-
-    # R6: enterocolitis (tighter height)
-    G["l_entero_yes"] = (cx(CB, NW), 342, NW, 48)
-    G["l_entero_no"]  = (cx(CC, NW), 342, NW, 48)
-    G["r_entero_yes"] = (cx(CE, NW), 342, NW, 48)
-    G["r_entero_no"]  = (cx(CF, NW), 342, NW, 48)
-
-    # R7: action nodes — terminal — slightly taller, stronger visual weight
-    G["stop_abx"]   = (cx(CA, NW),  424, NW,  34)
-    G["continue_l"] = (cx(CB, MW),  406, MW,  42)
-    G["allo_sct"]   = (cx(CC, NW),  424, NW,  34)
-    G["non_allo"]   = (cx(CD, NW),  424, NW,  34)
-    G["continue_r"] = (cx(CE, MW),  406, MW,  42)
-    G["target_abx"] = (cx(CG, NW),  424, NW,  34)
-
-    # R8: cease nodes
-    G["cease_allo"]     = (cx(CC, MW), 478, MW, 52)
-    G["cease_non_allo"] = (410,        478, MW, 38)
-
-    # Recurrent fever (same column as target_abx)
-    G["recurrent_fever"] = (cx(CG, NW + 60), 478, NW + 60, 30)
-    G["recurrent_box"]   = (cx(CG, NW + 120), 524, NW + 120, 86)
-
-    # ── Helpers ───────────────────────────────────────────────────────────
-    def gx(n):   return G[n][0]
-    def gy(n):   return G[n][1]
-    def gw(n):   return G[n][2]
-    def gh(n):   return G[n][3]
-    def gcx(n):  return G[n][0] + G[n][2] // 2
-    def gtop(n): return G[n][1]
-    def gbot(n): return G[n][1] + G[n][3]
-    def grgt(n): return G[n][0] + G[n][2]
-
-    # ── SVG OPEN ──────────────────────────────────────────────────────────
-    svg = (f'<svg id="flowSVG" xmlns="http://www.w3.org/2000/svg" '
-           f'width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
-           f'style="background:#FAFAFA;font-family:{FONT}">\n')
-
-    svg += f'''<defs>
-  <marker id="arr_n" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto">
-    <path d="M0,0 L0,7 L9,3.5 z" fill="{C["ol"]}"/>
-  </marker>
-  <marker id="arr_a" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto">
-    <path d="M0,0 L0,7 L9,3.5 z" fill="{C["act"]}"/>
-  </marker>
-  <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
-    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#00000018"/>
-  </filter>
-</defs>\n'''
-
-    # ── BACKGROUND LAYERS ─────────────────────────────────────────────────
-    # White base
-    svg += f'<rect x="0" y="0" width="{W}" height="{H}" fill="#FAFAFA"/>\n'
-
-    # Lane backgrounds (drawn before nodes so nodes sit on top)
-    L_lc = C["lane_l"] if not d("fever_unknown") else C["dim_fill"]
-    M_lc = C["lane_m"] if not d("micro_defined") else C["dim_fill"]
-    R_lc = C["lane_r"] if not d("persistent_fever") else C["dim_fill"]
-
-    svg += lane_bg(L_LANE_X, LANE_TOP, L_LANE_W, LANE_BOT - LANE_TOP, L_lc)
-    svg += lane_bg(M_LANE_X, LANE_TOP, M_LANE_W, LANE_BOT - LANE_TOP, M_lc)
-    svg += lane_bg(R_LANE_X, LANE_TOP, R_LANE_W, LANE_BOT - LANE_TOP, R_lc)
-
-    # Single faint action row band — scoped to left+mid lanes only, very subtle
-    svg += row_band(L_LANE_X, 416, R_LANE_X - L_LANE_X - 8, 52, "#E8EAF0")
-
-    # Vertical lane dividers
-    svg += divider(M_LANE_X - 2, LANE_TOP + 46, 660)
-    # Right divider stops at imaging box top to avoid intersecting it
-    svg += divider(R_LANE_X - 2, LANE_TOP + 46, 238)
-
-    # ── DRAW NODES ────────────────────────────────────────────────────────
-    def N(nid, fill, stroke, label="", fs=10, bold=False, text_color="#111",
-          bullets=None, dashed=False, sw=1.5, rx=7):
-        x, y, w, h = G[nid]
-        return node(x, y, w, h, fill, stroke,
-                    label=label, fs=fs, bold=bold, text_color=text_color,
-                    bullets=bullets, active=a(nid), dimmed=d(nid),
-                    dashed=dashed, sw=sw, rx=rx)
-
-    # Top nodes — with shadow filter applied via extra rect
-    svg += f'<g filter="url(#shadow)">\n'
-    svg += N("header",   C["hdr_fill"],    C["hdr_fill"],
-             "Neutropaenic Sepsis Management", fs=14, bold=True,
-             text_color=C["hdr_text"], sw=0)
-    svg += N("review72", C["review_fill"], C["review_fill"],
-             "Review at 72 hours empiric antibiotics", fs=10, bold=True,
-             text_color=C["review_text"], sw=0)
-    svg += f'</g>\n'
-
-    # Branch headers
-    svg += N("resolved_fever",   C["resolved_fill"], C["resolved_fill"],
-             "Resolved fever:  Afebrile >48 hours & clinically stable",
-             fs=10, bold=True, text_color=C["resolved_text"], sw=0)
-    svg += N("persistent_fever", C["persistent_fill"], C["persistent_fill"],
-             "Persistent fever or remains clinically unstable",
-             fs=10, bold=True, text_color=C["persistent_text"], sw=0)
-
-    # R3 sub-branch decision nodes
-    svg += N("fever_unknown", C["decision_fill"], C["decision_stroke"],
-             "Fever of unknown origin", fs=9, sw=1.5)
-    svg += N("micro_defined", C["decision_fill"], "#2E86C1",
-             "Microbiologically or clinically defined infection",
-             fs=9, dashed=True, sw=1.5)
-    svg += N("p_stable", C["decision_fill"], C["decision_stroke"],
-             "Clinically stable: Continue empiric therapy", fs=9, sw=1.5)
-    svg += node(*G["p_unstable"], C["urgent_fill"], C["urgent_dark"],
-                fs=9, bold=True, text_color="#7B241C",
-                bullets=["Clinically unstable:",
-                         "Consider aminoglycoside",
-                         "Liaise with ID re MRO",
-                         "Repeat periph & central cultures"],
-                active=a("p_unstable"), dimmed=d("p_unstable"), sw=2)
-
-    # R4: liaise_id
-    svg += N("liaise_id", C["decision_fill"], "#2E86C1",
-             "Liaise with ID", fs=9, dashed=True)
-
-    # R5: neutropaenia
-    for nid in ("l_neutro_resolved", "l_neutro_ongoing",
-                "r_neutro_ongoing",  "r_neutro_resolved"):
-        lbl = "Resolved neutropaenia" if "resolved" in nid else "Ongoing neutropaenia"
-        svg += N(nid, C["decision_fill"], C["decision_stroke"], lbl, fs=8.5)
-
-    # Imaging box (right, tall bullet box)
-    svg += node(*G["imaging_box"], C["decision_fill"], C["decision_stroke"],
-                fs=9,
-                bullets=["Liaise with ID",
-                         "CT chest ± abdo/pelvis/sinus",
-                         "MRI brain if CNS signs",
-                         "Consider non-infective causes"],
-                active=a("imaging_box"), dimmed=d("imaging_box"))
-
-    # R6: enterocolitis nodes
-    for nid, lbl in [
-        ("l_entero_yes", "Has enterocolitis\nor mucositis"),
-        ("l_entero_no",  "No enterocolitis\nor mucositis"),
-        ("r_entero_yes", "Has enterocolitis\nor mucositis"),
-        ("r_entero_no",  "No enterocolitis\nor mucositis"),
-    ]:
-        svg += N(nid, C["decision_fill"], C["decision_stroke"], lbl, fs=8.5)
-
-    # R7: TERMINAL ACTION NODES — distinct fills, bold, slightly larger
-    svg += N("stop_abx",   C["action_stop"],    C["action_stop"],
-             "Stop antibiotics",            fs=9, bold=True,
-             text_color=C["action_stop_t"], sw=0, rx=8)
-    svg += N("continue_l", C["action_cont"],    C["action_cont"],
-             "Continue empiric antibiotics", fs=9, bold=True,
-             text_color=C["action_cont_t"], sw=0, rx=8)
-    svg += N("allo_sct",   C["decision_fill"],  C["decision_stroke"],
-             "Allo-SCT patient",            fs=8.5)
-    svg += N("non_allo",   C["decision_fill"],  C["decision_stroke"],
-             "Non-allo-SCT patient",        fs=8.5)
-    svg += N("continue_r", C["action_cont"],    C["action_cont"],
-             "Continue empiric antibiotics", fs=9, bold=True,
-             text_color=C["action_cont_t"], sw=0, rx=8)
-    svg += N("target_abx", C["action_target"],  C["action_target"],
-             "Target antibiotics",          fs=9, bold=True,
-             text_color=C["action_target_t"], sw=0, rx=8)
-
-    # R8: cease nodes
-    svg += node(*G["cease_allo"], C["action_cease"], C["action_cease"],
-                label="Consider ceasing if another cause found",
-                fs=8.5, bold=False, text_color=C["action_cease_t"],
-                active=a("cease_allo"), dimmed=d("cease_allo"), sw=0, rx=8)
-    svg += node(*G["cease_non_allo"], C["action_cease"], C["action_cease"],
-                label="Consider ceasing empiric antibiotics",
-                fs=8.5, bold=False, text_color=C["action_cease_t"],
-                active=a("cease_non_allo"), dimmed=d("cease_non_allo"), sw=0, rx=8)
-
-    # Recurrent
-    svg += N("recurrent_fever", C["recurrent_fill"], C["recurrent_fill"],
-             "Recurrent fever", fs=10, bold=True,
-             text_color=C["recurrent_text"], sw=0)
-    svg += node(*G["recurrent_box"], C["recurrent_box"], C["urgent_dark"],
-                fs=8.5, sw=1.5,
-                bullets=["Clinically unstable:",
-                         "Restart empiric abx + consider aminoglycoside",
-                         "Liaise with ID re MRO coverage",
-                         "Repeat peripheral & central cultures"],
-                active=a("recurrent_box"), dimmed=d("recurrent_box"))
-
-    # ── ARROWS ────────────────────────────────────────────────────────────
-    # header → review72
-    svg += arrow(gcx("header"), gbot("header"), gcx("review72"), gtop("review72"),
-                 act=a("header"))
-
-    # review72 → resolved_fever & persistent_fever via bus
-    bus1 = 84
-    svg += seg(gcx("review72"), gbot("review72"), gcx("review72"), bus1, act=a("review72"))
-    svg += seg(gcx("resolved_fever"), bus1, gcx("persistent_fever"), bus1)
-    for nid in ("resolved_fever", "persistent_fever"):
-        svg += arrow(gcx(nid), bus1, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # resolved_fever → fever_unknown | micro_defined via bus
-    bus2 = 152
-    svg += seg(gcx("resolved_fever"), gbot("resolved_fever"), gcx("resolved_fever"), bus2,
-               act=a("resolved_fever"), dim=d("resolved_fever"))
-    svg += seg(gcx("fever_unknown"), bus2, gcx("micro_defined"), bus2)
-    # branch labels
-    svg += branch_label(gcx("fever_unknown") + 28, bus2 - 5, "No defined source",
-                        act=a("fever_unknown"), dim=d("fever_unknown"))
-    svg += branch_label(gcx("micro_defined") - 10, bus2 - 5, "Defined source",
-                        act=a("micro_defined"), dim=d("micro_defined"))
-    for nid in ("fever_unknown", "micro_defined"):
-        svg += arrow(gcx(nid), bus2, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # persistent_fever → p_stable | p_unstable via bus
-    svg += seg(gcx("persistent_fever"), gbot("persistent_fever"), gcx("persistent_fever"), bus2,
-               act=a("persistent_fever"), dim=d("persistent_fever"))
-    svg += seg(gcx("p_stable"), bus2, gcx("p_unstable"), bus2)
-    svg += branch_label(gcx("p_stable") + 20, bus2 - 5, "Stable",
-                        act=a("p_stable"), dim=d("p_stable"))
-    svg += branch_label(gcx("p_unstable") - 18, bus2 - 5, "Unstable",
-                        act=a("p_unstable"), dim=d("p_unstable"))
-    for nid in ("p_stable", "p_unstable"):
-        svg += arrow(gcx(nid), bus2, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # p_unstable → imaging_box
-    svg += arrow(gcx("p_unstable"), gbot("p_unstable"), gcx("imaging_box"), gtop("imaging_box"),
-                 act=a("p_unstable"), dim=d("p_unstable") or d("imaging_box"))
-
-    # micro_defined → liaise_id
-    svg += arrow(gcx("micro_defined"), gbot("micro_defined"), gcx("liaise_id"), gtop("liaise_id"),
-                 act=a("micro_defined"), dim=d("micro_defined") or d("liaise_id"))
-
-    # fever_unknown → l_neutro split
-    bus3 = 264
-    svg += seg(gcx("fever_unknown"), gbot("fever_unknown"), gcx("fever_unknown"), bus3,
-               act=a("fever_unknown"), dim=d("fever_unknown"))
-    svg += seg(gcx("l_neutro_resolved"), bus3, gcx("l_neutro_ongoing"), bus3)
-    svg += branch_label(gcx("l_neutro_resolved") + 22, bus3 - 5, "Resolved",
-                        act=a("l_neutro_resolved"), dim=d("l_neutro_resolved"))
-    svg += branch_label(gcx("l_neutro_ongoing") - 22, bus3 - 5, "Ongoing",
-                        act=a("l_neutro_ongoing"), dim=d("l_neutro_ongoing"))
-    for nid in ("l_neutro_resolved", "l_neutro_ongoing"):
-        svg += arrow(gcx(nid), bus3, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # liaise_id → r_neutro split
-    svg += seg(gcx("liaise_id"), gbot("liaise_id"), gcx("liaise_id"), bus3,
-               act=a("liaise_id"), dim=d("liaise_id"))
-    svg += seg(gcx("r_neutro_ongoing"), bus3, gcx("r_neutro_resolved"), bus3)
-    svg += branch_label(gcx("r_neutro_ongoing") + 22, bus3 - 5, "Ongoing",
-                        act=a("r_neutro_ongoing"), dim=d("r_neutro_ongoing"))
-    svg += branch_label(gcx("r_neutro_resolved") - 22, bus3 - 5, "Resolved",
-                        act=a("r_neutro_resolved"), dim=d("r_neutro_resolved"))
-    for nid in ("r_neutro_ongoing", "r_neutro_resolved"):
-        svg += arrow(gcx(nid), bus3, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # l_neutro_resolved → stop_abx
-    svg += arrow(gcx("l_neutro_resolved"), gbot("l_neutro_resolved"),
-                 gcx("stop_abx"), gtop("stop_abx"),
-                 act=a("l_neutro_resolved"), dim=d("l_neutro_resolved") or d("stop_abx"))
-
-    # l_neutro_ongoing → entero split
-    bus4 = 328
-    svg += seg(gcx("l_neutro_ongoing"), gbot("l_neutro_ongoing"), gcx("l_neutro_ongoing"), bus4,
-               act=a("l_neutro_ongoing"), dim=d("l_neutro_ongoing"))
-    svg += seg(gcx("l_entero_yes"), bus4, gcx("l_entero_no"), bus4)
-    svg += branch_label(gcx("l_entero_yes") + 20, bus4 - 5, "Yes",
-                        act=a("l_entero_yes"), dim=d("l_entero_yes"))
-    svg += branch_label(gcx("l_entero_no") - 20, bus4 - 5, "No",
-                        act=a("l_entero_no"), dim=d("l_entero_no"))
-    for nid in ("l_entero_yes", "l_entero_no"):
-        svg += arrow(gcx(nid), bus4, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # r_neutro_ongoing → r_entero split
-    svg += seg(gcx("r_neutro_ongoing"), gbot("r_neutro_ongoing"), gcx("r_neutro_ongoing"), bus4,
-               act=a("r_neutro_ongoing"), dim=d("r_neutro_ongoing"))
-    svg += seg(gcx("r_entero_yes"), bus4, gcx("r_entero_no"), bus4)
-    svg += branch_label(gcx("r_entero_yes") + 20, bus4 - 5, "Yes",
-                        act=a("r_entero_yes"), dim=d("r_entero_yes"))
-    svg += branch_label(gcx("r_entero_no") - 20, bus4 - 5, "No",
-                        act=a("r_entero_no"), dim=d("r_entero_no"))
-    for nid in ("r_entero_yes", "r_entero_no"):
-        svg += arrow(gcx(nid), bus4, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # l_entero_yes → continue_l
-    svg += arrow(gcx("l_entero_yes"), gbot("l_entero_yes"),
-                 gcx("continue_l"), gtop("continue_l"),
-                 act=a("l_entero_yes"), dim=d("l_entero_yes") or d("continue_l"))
-
-    # l_entero_no → allo/non_allo split
-    bus5 = 410
-    svg += seg(gcx("l_entero_no"), gbot("l_entero_no"), gcx("l_entero_no"), bus5,
-               act=a("l_entero_no"), dim=d("l_entero_no"))
-    svg += seg(gcx("allo_sct"), bus5, gcx("non_allo"), bus5)
-    svg += branch_label(gcx("allo_sct") + 18, bus5 - 5, "Allo-SCT",
-                        act=a("allo_sct"), dim=d("allo_sct"))
-    svg += branch_label(gcx("non_allo") - 18, bus5 - 5, "Non-allo",
-                        act=a("non_allo"), dim=d("non_allo"))
-    for nid in ("allo_sct", "non_allo"):
-        svg += arrow(gcx(nid), bus5, gcx(nid), gtop(nid), act=a(nid), dim=d(nid))
-
-    # allo_sct → cease_allo
-    svg += arrow(gcx("allo_sct"), gbot("allo_sct"), gcx("cease_allo"), gtop("cease_allo"),
-                 act=a("allo_sct"), dim=d("allo_sct") or d("cease_allo"))
-    # non_allo → cease_non_allo
-    svg += arrow(gcx("non_allo"), gbot("non_allo"), gcx("cease_non_allo"), gtop("cease_non_allo"),
-                 act=a("non_allo"), dim=d("non_allo") or d("cease_non_allo"))
-
-    # r_entero_yes → continue_r
-    svg += arrow(gcx("r_entero_yes"), gbot("r_entero_yes"),
-                 gcx("continue_r"), gtop("continue_r"),
-                 act=a("r_entero_yes"), dim=d("r_entero_yes") or d("continue_r"))
-
-    # r_entero_no → target_abx (elbow right)
-    bus6 = gbot("r_entero_no") + 16
-    svg += poly([(gcx("r_entero_no"), gbot("r_entero_no")),
-                 (gcx("r_entero_no"), bus6),
-                 (gcx("target_abx"),  bus6),
-                 (gcx("target_abx"),  gtop("target_abx"))],
-                act=a("r_entero_no"), dim=d("r_entero_no") or d("target_abx"))
-
-    # r_neutro_resolved → target_abx (elbow via bus4)
-    svg += poly([(gcx("r_neutro_resolved"), gbot("r_neutro_resolved")),
-                 (gcx("r_neutro_resolved"), bus4),
-                 (gcx("target_abx"),        bus4),
-                 (gcx("target_abx"),        gtop("target_abx"))],
-                act=a("r_neutro_resolved"), dim=d("r_neutro_resolved") or d("target_abx"))
-
-    # target_abx → recurrent_fever
-    svg += arrow(gcx("target_abx"), gbot("target_abx"),
-                 gcx("recurrent_fever"), gtop("recurrent_fever"),
-                 act=a("target_abx"), dim=d("target_abx") or d("recurrent_fever"))
-
-    # recurrent_fever → recurrent_box
-    svg += arrow(gcx("recurrent_fever"), gbot("recurrent_fever"),
-                 gcx("recurrent_box"), gtop("recurrent_box"),
-                 act=a("recurrent_fever"), dim=d("recurrent_fever") or d("recurrent_box"))
-
-    # ── LEGEND ────────────────────────────────────────────────────────────
-    ly = 700
-    legend_items = [
-        (C["action_stop"],    C["action_stop"],    C["action_stop_t"],  "Stop / discharge"),
-        (C["action_cont"],    C["action_cont"],    C["action_cont_t"],  "Continue empiric"),
-        (C["action_target"],  C["action_target"],  C["action_target_t"],"Target antibiotics"),
-        (C["action_cease"],   C["action_cease"],   C["action_cease_t"], "Consider ceasing"),
-        (C["decision_fill"],  C["decision_stroke"],  "#111",            "Decision / condition"),
-        (C["urgent_fill"],    C["urgent_dark"],    "#7B241C",           "Urgent / unstable"),
-        (C["recurrent_fill"], C["recurrent_fill"], C["recurrent_text"], "Recurrent fever"),
-    ]
-    lw, lg = 160, 8
-    total_lw = len(legend_items) * (lw + lg)
-    lx0 = (W - total_lw) // 2
-    for i, (lf, ls, lt, ll) in enumerate(legend_items):
-        lx = lx0 + i * (lw + lg)
-        svg += node(lx, ly, lw, 24, lf, ls, label=ll, fs=8.5, text_color=lt, sw=1.5, rx=5)
-
-    # Active pathway indicator line
-    svg += (f'<rect x="{lx0 + 6*(lw+lg)}" y="{ly}" width="{lw}" height="24" rx="5" '
-            f'fill="none" stroke="{C["act"]}" stroke-width="2.5"/>\n')
-
-    svg += "</svg>\n"
-    return svg
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# RECOMMENDATIONS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def get_recommendations(AN):
     recs = []
@@ -655,92 +66,552 @@ def get_recommendations(AN):
                      "Clinical situation warrants ongoing broad-spectrum cover."))
     if "p_stable" in AN:
         recs.append(("💊", "Continue empiric therapy",
-                     "Fever persisting but patient is clinically stable — continue current empiric regimen."))
+                     "Fever persisting but clinically stable — continue current empiric regimen."))
     if "cease_allo" in AN:
-        recs.append(("⚠️", "Consider ceasing empiric antibiotics (Allo-SCT)",
-                     "Consider ceasing if another cause is found. Discuss with ID / haematology."))
+        recs.append(("⚠️", "Consider ceasing (Allo-SCT)",
+                     "Consider ceasing if another cause found. Discuss with ID / haematology."))
     if "cease_non_allo" in AN:
-        recs.append(("⚠️", "Consider ceasing empiric antibiotics (Non-allo-SCT)",
+        recs.append(("⚠️", "Consider ceasing (Non-allo-SCT)",
                      "Consider ceasing empiric antibiotics. Discuss with ID / treating team."))
     if "target_abx" in AN:
         recs.append(("🎯", "Target antibiotics",
                      "De-escalate to targeted therapy based on identified pathogen / source."))
     if "p_unstable" in AN:
         recs.append(("🚨", "Clinically unstable — escalate",
-                     "Consider aminoglycoside. Liaise with ID re MRO coverage. "
-                     "Repeat peripheral and central cultures."))
+                     "Consider aminoglycoside. Liaise with ID re MRO coverage. Repeat cultures."))
     if "imaging_box" in AN:
         recs.append(("🖥️", "Consider further investigation",
-                     "Liaise with ID. Consider CT chest ± abdo/pelvis/sinus. "
-                     "MRI brain if CNS signs. Consider non-infective causes."))
+                     "CT chest ± abdo/pelvis/sinus. MRI brain if CNS signs. Non-infective causes."))
     if "recurrent_box" in AN:
         recs.append(("🔄", "Recurrent fever",
-                     "Restart empiric antibiotics and consider aminoglycoside. "
-                     "Liaise with ID about MRO coverage. Repeat peripheral and central cultures."))
+                     "Restart empiric abx + consider aminoglycoside. Liaise re MRO. Repeat cultures."))
     return recs
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# COPY-TO-CLIPBOARD JS
+# HTML BUILDER — BMJ INFOGRAPHIC STYLE
+# Each node gets active / dimmed / (neutral) CSS class from pathway state.
 # ══════════════════════════════════════════════════════════════════════════════
 
-COPY_JS = """
-<button onclick="copyChart()" style="
-    background:#2471A3;color:#fff;border:none;border-radius:7px;
-    padding:9px 20px;font-size:14px;cursor:pointer;
-    font-family:Arial,sans-serif;display:inline-flex;
-    align-items:center;gap:8px;margin-bottom:6px;">
-  📋 Copy flowchart to clipboard
-</button>
-<div id="copyMsg" style="font-size:12px;font-family:Arial,sans-serif;min-height:18px;margin-top:3px;"></div>
-<script>
-async function copyChart() {
-  const msg = document.getElementById('copyMsg');
-  msg.style.color='#888'; msg.textContent='Rendering…';
-  const svg = document.getElementById('flowSVG');
-  if (!svg) { msg.textContent='⚠️ Chart not found.'; return; }
-  const ser = new XMLSerializer().serializeToString(svg);
-  const vb  = svg.viewBox.baseVal;
-  const sc  = 2;
-  const cv  = document.createElement('canvas');
-  cv.width  = vb.width*sc; cv.height = vb.height*sc;
-  const ctx = cv.getContext('2d');
-  ctx.scale(sc,sc); ctx.fillStyle='#FAFAFA'; ctx.fillRect(0,0,vb.width,vb.height);
-  const blob = new Blob([ser],{type:'image/svg+xml;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const img  = new Image();
-  img.onload = async () => {
-    ctx.drawImage(img,0,0); URL.revokeObjectURL(url);
-    cv.toBlob(async (pngBlob) => {
-      if (navigator.clipboard && navigator.clipboard.write) {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({'image/png':pngBlob})]);
-          msg.style.color='#1a6e35'; msg.textContent='✅ Copied! Paste into eNotes with Ctrl+V / Cmd+V.';
-          return;
-        } catch(e){}
-      }
-      const a = document.createElement('a');
-      a.href = cv.toDataURL('image/png');
-      a.download = 'neutropenic_sepsis_pathway.png';
-      a.click();
-      msg.style.color='#c87722'; msg.textContent='📥 Saved as PNG — insert into eNotes manually.';
-    },'image/png');
-  };
-  img.onerror = () => { msg.style.color='#c0392b'; msg.textContent='⚠️ Render failed.'; };
-  img.src = url;
+_CSS = """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:          #F7F3EE;
+  --bg-left:     #EBF4FB;
+  --bg-mid:      #EBF5F0;
+  --bg-right:    #FEF3EB;
+  --purple:      #4A3A8C;
+  --red-hdr:     #8B2727;
+  --teal-hdr:    #1F6E58;
+  --blue-hdr:    #2354A0;
+  --teal:        #2BBBAD;
+  --teal-dk:     #0F7A62;
+  --red-no:      #E03030;
+  --q-bg:        #E4F1F9;
+  --q-border:    #7BB8D4;
+  --q-text:      #163344;
+  --dash-bg:     #EAF8F3;
+  --dash-border: #2BBBAD;
+  --stop:        #219150;
+  --cont:        #1D5FA8;
+  --target:      #0F7A62;
+  --cease-bg:    #FFF8DC;
+  --cease-bdr:   #C49A00;
+  --cease-text:  #7A5E00;
+  --urg-bg:      #FCDFDA;
+  --urg-bdr:     #C0392B;
+  --urg-text:    #7B1A1A;
+  --rec:         #7D3C98;
+  --rec-bg:      #F8EAFF;
+  --rec-bdr:     #A355C8;
+  --dim-bg:      #F0F0F0;
+  --dim-bdr:     #D0D0D0;
+  --dim-text:    #BBBBBB;
+  --arrow:       #2C3E50;
+  --act-arrow:   #0F7A62;
+  --shadow:      0 2px 8px rgba(0,0,0,0.09);
+  --shadow-act:  0 3px 14px rgba(15,122,98,0.22);
+  --font:        'Nunito', 'Segoe UI', sans-serif;
 }
-</script>
+
+body { font-family: var(--font); background: var(--bg); padding: 10px 12px 16px; }
+
+.infographic { max-width: 1180px; margin: 0 auto; }
+
+/* ── HEADER PILLS ── */
+.hdr-title {
+  background: var(--purple); color: #fff;
+  text-align: center; font-size: 17px; font-weight: 800;
+  padding: 11px 36px; border-radius: 50px;
+  display: block; width: fit-content; margin: 0 auto 8px;
+  box-shadow: var(--shadow); letter-spacing: 0.01em;
+}
+.hdr-review {
+  background: var(--blue-hdr); color: #fff;
+  text-align: center; font-size: 12px; font-weight: 700;
+  padding: 8px 44px; border-radius: 50px;
+  display: block; width: fit-content; margin: 0 auto 10px;
+  box-shadow: var(--shadow);
+}
+
+/* ── THREE COLUMN GRID ── */
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* ── SECTION PANELS ── */
+.section-panel {
+  border-radius: 18px; padding: 10px 10px 14px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.panel-left  { background: var(--bg-left); }
+.panel-mid   { background: var(--bg-mid); }
+.panel-right { background: var(--bg-right); }
+.panel-dim   { background: var(--dim-bg); }
+
+/* ── SECTION HEADERS ── */
+.section-hdr {
+  color: #fff; font-size: 11px; font-weight: 800;
+  padding: 8px 12px; border-radius: 11px; text-align: center;
+  width: 100%; margin-bottom: 7px; box-shadow: var(--shadow); line-height: 1.4;
+}
+.hdr-resolved   { background: var(--purple); }
+.hdr-micro      { background: var(--teal-hdr); }
+.hdr-persistent { background: var(--red-hdr); }
+
+/* ── QUESTION CARD ── */
+.q-card {
+  background: var(--q-bg); border: 1.5px solid var(--q-border);
+  border-radius: 12px; padding: 7px 10px;
+  font-size: 10.5px; font-weight: 600; color: var(--q-text);
+  text-align: center; line-height: 1.4; width: 100%;
+  box-shadow: var(--shadow);
+}
+.q-card .sub {
+  font-size: 9px; font-weight: 600; color: #5A7A8A;
+  margin-top: 3px; font-style: italic; display: block;
+}
+.q-card.dashed {
+  background: var(--dash-bg);
+  border: 1.5px dashed var(--dash-border);
+}
+.q-card.urgent {
+  background: var(--urg-bg); border: 1.5px solid var(--urg-bdr);
+  color: var(--urg-text); text-align: left;
+}
+.q-card.urgent ul { margin: 4px 0 0 14px; font-size: 10px; }
+.q-card.active {
+  outline: 2.5px solid var(--teal); outline-offset: 2px;
+  box-shadow: var(--shadow-act);
+}
+.q-card.dimmed {
+  background: var(--dim-bg) !important; border-color: var(--dim-bdr) !important;
+  color: var(--dim-text) !important; box-shadow: none;
+}
+.q-card.dimmed .sub,
+.q-card.dimmed li { color: var(--dim-text) !important; }
+
+/* ── YES/NO BADGE ROW ── */
+.yn-row {
+  display: flex; justify-content: space-around; width: 100%;
+  align-items: center; margin: 3px 0; position: relative;
+}
+.yn-row::before {
+  content: ''; position: absolute;
+  top: 12px; left: 14%; right: 14%;
+  height: 2px; background: var(--arrow); z-index: 0;
+}
+.yn-row.dim::before { background: var(--dim-bdr); }
+
+.badge-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; }
+
+.badge {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900; color: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18); flex-shrink: 0;
+}
+.badge.yes { background: var(--teal); }
+.badge.no  { background: var(--red-no); }
+.badge.badge-active {
+  box-shadow: 0 0 0 3px rgba(43,187,173,0.35), 0 1px 5px rgba(0,0,0,0.18);
+}
+.badge.badge-dimmed { background: var(--dim-bdr) !important; color: var(--dim-text); box-shadow: none; }
+
+.badge-lbl { font-size: 9px; font-weight: 700; color: #5A6A7A; }
+.badge-lbl.active { color: var(--teal-dk); }
+.badge-lbl.dimmed { color: var(--dim-text); }
+
+/* ── CONNECTOR ARROW ── */
+.connector { display: flex; justify-content: center; width: 100%; margin: 1px 0; }
+
+/* ── TWO-COLUMN sub-layouts ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; width: 100%; }
+
+/* ── ACTION / TERMINAL NODES ── */
+.action-node {
+  width: 100%; padding: 9px 10px; border-radius: 12px;
+  text-align: center; font-size: 10.5px; font-weight: 800;
+  line-height: 1.3; box-shadow: var(--shadow);
+}
+.action-node.stop   { background: var(--stop);   color: #fff; }
+.action-node.cont   { background: var(--cont);   color: #fff; }
+.action-node.target { background: var(--target); color: #fff; }
+.action-node.cease  {
+  background: var(--cease-bg); color: var(--cease-text);
+  border: 1.5px solid var(--cease-bdr);
+}
+.action-node.active {
+  outline: 2.5px solid var(--teal); outline-offset: 2px; box-shadow: var(--shadow-act);
+}
+.action-node.dimmed {
+  background: var(--dim-bg) !important; color: var(--dim-text) !important;
+  border-color: var(--dim-bdr) !important; box-shadow: none;
+}
+
+/* ── RECURRENT FEVER ── */
+.rec-hdr {
+  background: var(--rec); color: #fff;
+  font-size: 11px; font-weight: 800; text-align: center;
+  padding: 8px 12px; border-radius: 50px; width: 100%; box-shadow: var(--shadow);
+}
+.rec-hdr.active { outline: 2.5px solid var(--teal); outline-offset: 2px; box-shadow: var(--shadow-act); }
+.rec-hdr.dimmed { background: var(--dim-bg) !important; color: var(--dim-text) !important; box-shadow: none; }
+
+.rec-box {
+  background: var(--rec-bg); border: 1.5px solid var(--rec-bdr);
+  border-radius: 12px; padding: 9px 12px;
+  font-size: 10px; color: #4A1A60; line-height: 1.5; width: 100%;
+}
+.rec-box ul { margin-left: 14px; }
+.rec-box.active { outline: 2.5px solid var(--teal); outline-offset: 2px; box-shadow: var(--shadow-act); }
+.rec-box.dimmed {
+  background: var(--dim-bg) !important; border-color: var(--dim-bdr) !important;
+  color: var(--dim-text) !important;
+}
+
+/* ── BULLET INFO CARD ── */
+.bullet-card {
+  background: var(--q-bg); border: 1.5px solid var(--q-border);
+  border-radius: 12px; padding: 9px 12px;
+  font-size: 10px; color: var(--q-text); line-height: 1.5; width: 100%;
+}
+.bullet-card ul { margin: 4px 0 0 14px; }
+.bullet-card.active { outline: 2.5px solid var(--teal); outline-offset: 2px; box-shadow: var(--shadow-act); }
+.bullet-card.dimmed {
+  background: var(--dim-bg) !important; border-color: var(--dim-bdr) !important;
+  color: var(--dim-text) !important;
+}
+
+/* ── LEGEND ── */
+.legend {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #DDD;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 700; color: #3A4A5A; }
+.legend-swatch { width: 26px; height: 15px; border-radius: 5px; flex-shrink: 0; }
+
+/* ── FOOTER ── */
+.footer { text-align: right; font-size: 9px; color: #8A9AA8; margin-top: 8px; font-style: italic; }
+
+/* ── UTILITIES ── */
+.w100 { width: 100%; }
+.mt4  { margin-top: 4px; }
+.col  { display: flex; flex-direction: column; align-items: center; width: 100%; }
+</style>
 """
+
+
+def _node_cls(node_id, AN):
+    """Return 'active', 'dimmed', or '' based on pathway state."""
+    if node_id in AN:
+        return "active"
+    if len(AN) > 2:
+        return "dimmed"
+    return ""
+
+
+def _badge_html(is_yes, state):
+    kind = "yes" if is_yes else "no"
+    sym  = "✓"  if is_yes else "✕"
+    extra = f" badge-{state}" if state else ""
+    return f'<div class="badge {kind}{extra}">{sym}</div>'
+
+
+def _yn_row(yes_id, no_id, AN, yes_lbl="Yes", no_lbl="No"):
+    sy = _node_cls(yes_id, AN)
+    sn = _node_cls(no_id, AN)
+    dim_line = " dim" if (sy == "dimmed" and sn == "dimmed") else ""
+    return f"""<div class="yn-row{dim_line}">
+        <div class="badge-wrap">{_badge_html(True, sy)}<span class="badge-lbl {sy}">{yes_lbl}</span></div>
+        <div class="badge-wrap">{_badge_html(False, sn)}<span class="badge-lbl {sn}">{no_lbl}</span></div>
+      </div>"""
+
+
+def _arrow_svg(from_id, to_id, AN):
+    """Coloured connector arrow: teal if both active, grey if dimmed, dark otherwise."""
+    both_active = from_id in AN and to_id in AN
+    either_dim  = len(AN) > 2 and not both_active
+    clr = "#0F7A62" if both_active else ("#CCCCCC" if either_dim else "#2C3E50")
+    sw  = "2.5" if both_active else "2.2"
+    return f"""<div class="connector">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <line x1="10" y1="0" x2="10" y2="11" stroke="{clr}" stroke-width="{sw}"/>
+          <polygon points="10,20 3,9 17,9" fill="{clr}"/>
+        </svg></div>"""
+
+
+def build_html(AN):
+    def c(nid):                    return _node_cls(nid, AN)
+    def arr(fid, tid):             return _arrow_svg(fid, tid, AN)
+    def yn(yes_id, no_id, yl, nl): return _yn_row(yes_id, no_id, AN, yl, nl)
+
+    def qcard(nid, text, extra="", sub="", fs=""):
+        s = f' style="font-size:{fs};"' if fs else ""
+        sub_h = f'<span class="sub">{sub}</span>' if sub else ""
+        return f'<div class="q-card {extra} {c(nid)}"{s}>{text}{sub_h}</div>'
+
+    def action(nid, kind, text, fs=""):
+        s = f' style="font-size:{fs};"' if fs else ""
+        return f'<div class="action-node {kind} {c(nid)}"{s}>{text}</div>'
+
+    # Panel tint: dim entire column when its path is fully inactive
+    left_dim  = len(AN) > 2 and "fever_unknown"   not in AN and "resolved_fever" not in AN
+    mid_dim   = len(AN) > 2 and "micro_defined"   not in AN
+    right_dim = len(AN) > 2 and "persistent_fever" not in AN
+
+    lp = "panel-dim" if left_dim  else "panel-left"
+    mp = "panel-dim" if mid_dim   else "panel-mid"
+    rp = "panel-dim" if right_dim else "panel-right"
+
+    # Label colours for top split text
+    lc = "#BBBBBB" if left_dim  else "#5A6A7A"
+    rc = "#BBBBBB" if right_dim else "#5A6A7A"
+
+    # ── recurrent fever block (reused in both mid sub-paths) ──────────────
+    def recurrent_block():
+        return f"""
+          {arr("target_abx", "recurrent_fever")}
+          <div class="rec-hdr {c('recurrent_fever')}">Recurrent fever</div>
+          {arr("recurrent_fever", "recurrent_box")}
+          <div class="rec-box {c('recurrent_box')}"><ul>
+            <li>Clinically unstable</li>
+            <li>Restart empiric abx + aminoglycoside</li>
+            <li>Liaise with ID re MRO</li>
+            <li>Repeat peripheral &amp; central cultures</li>
+          </ul></div>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">{_CSS}</head>
+<body><div class="infographic">
+
+  <!-- ── TITLE + REVIEW BAR ── -->
+  <span class="hdr-title">🧬 Neutropaenic Sepsis Management</span>
+  {arr("header", "review72")}
+  <span class="hdr-review">Review at 72 hours — empiric antibiotics</span>
+
+  <!-- Top split bus -->
+  <div style="display:flex;justify-content:center;width:100%;position:relative;margin-bottom:3px;">
+    <svg width="100%" height="26" viewBox="0 0 900 26" preserveAspectRatio="none"
+         style="position:absolute;top:0;left:0;pointer-events:none;">
+      <line x1="450" y1="0"  x2="450" y2="9"  stroke="#2C3E50" stroke-width="2.2"/>
+      <line x1="160" y1="9"  x2="740" y2="9"  stroke="#2C3E50" stroke-width="2.2"/>
+      <line x1="160" y1="9"  x2="160" y2="26" stroke="#2C3E50" stroke-width="2.2"/>
+      <line x1="740" y1="9"  x2="740" y2="26" stroke="#2C3E50" stroke-width="2.2"/>
+    </svg>
+    <div style="width:33%;text-align:center;padding-top:15px;">
+      <span style="font-size:9.5px;font-weight:700;color:{lc};">Fever resolved</span></div>
+    <div style="width:34%"></div>
+    <div style="width:33%;text-align:center;padding-top:15px;">
+      <span style="font-size:9.5px;font-weight:700;color:{rc};">Persistent fever</span></div>
+  </div>
+
+  <!-- ── THREE COLUMNS ── -->
+  <div class="three-col">
+
+    <!-- ════ LEFT: Fever unknown path ════ -->
+    <div class="section-panel {lp} col">
+      <div class="section-hdr hdr-resolved">Resolved fever: Afebrile &gt;48 h &amp; clinically stable</div>
+
+      {yn("fever_unknown", "micro_defined", "No source", "Defined")}
+      {qcard("fever_unknown", "Fever of unknown origin")}
+      {arr("fever_unknown", "l_neutro_resolved")}
+      {yn("l_neutro_resolved", "l_neutro_ongoing", "Resolved", "Ongoing")}
+
+      <div class="two-col mt4">
+
+        <!-- Resolved neutro → stop -->
+        <div class="col">
+          {qcard("l_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
+          {arr("l_neutro_resolved", "stop_abx")}
+          {action("stop_abx", "stop", "Stop antibiotics")}
+        </div>
+
+        <!-- Ongoing neutro → entero split -->
+        <div class="col">
+          {qcard("l_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
+          {arr("l_neutro_ongoing", "l_entero_yes")}
+          {yn("l_entero_yes", "l_entero_no", "Entero", "No entero")}
+          <div class="two-col mt4">
+
+            <!-- Entero yes → continue -->
+            <div class="col">
+              {qcard("l_entero_yes", "Has enterocolitis or mucositis", fs="9px")}
+              {arr("l_entero_yes", "continue_l")}
+              {action("continue_l", "cont", "Continue empiric antibiotics", fs="9.5px")}
+            </div>
+
+            <!-- Entero no → allo/non-allo split -->
+            <div class="col">
+              {qcard("l_entero_no", "No enterocolitis or mucositis", fs="9px")}
+              {arr("l_entero_no", "allo_sct")}
+              {yn("allo_sct", "non_allo", "Allo-SCT", "Non-allo")}
+              <div class="two-col mt4">
+                <div class="col">
+                  {action("cease_allo", "cease",
+                          "Consider ceasing if another cause found", fs="9px")}
+                </div>
+                <div class="col">
+                  {action("cease_non_allo", "cease",
+                          "Consider ceasing empiric antibiotics", fs="9px")}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /left -->
+
+
+    <!-- ════ MIDDLE: Micro-defined path ════ -->
+    <div class="section-panel {mp} col">
+      <div class="section-hdr hdr-micro">Microbiologically / clinically defined infection</div>
+
+      {qcard("micro_defined",
+             "Microbiologically or clinically defined infection",
+             extra="dashed", sub="Defined source confirmed")}
+      {arr("micro_defined", "liaise_id")}
+      {qcard("liaise_id", "Liaise with ID", extra="dashed")}
+      {arr("liaise_id", "r_neutro_ongoing")}
+      {yn("r_neutro_ongoing", "r_neutro_resolved", "Ongoing", "Resolved")}
+
+      <div class="two-col mt4">
+
+        <!-- Ongoing → entero split -->
+        <div class="col">
+          {qcard("r_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
+          {arr("r_neutro_ongoing", "r_entero_yes")}
+          {yn("r_entero_yes", "r_entero_no", "Entero", "No entero")}
+          <div class="two-col mt4">
+            <div class="col">
+              {qcard("r_entero_yes", "Has enterocolitis or mucositis", fs="9px")}
+              {arr("r_entero_yes", "continue_r")}
+              {action("continue_r", "cont", "Continue empiric antibiotics", fs="9.5px")}
+            </div>
+            <div class="col">
+              {qcard("r_entero_no", "No enterocolitis or mucositis", fs="9px")}
+              {arr("r_entero_no", "target_abx")}
+              {action("target_abx", "target", "Target antibiotics", fs="9.5px")}
+              {recurrent_block()}
+            </div>
+          </div>
+        </div>
+
+        <!-- Resolved → target + recurrent -->
+        <div class="col">
+          {qcard("r_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
+          {arr("r_neutro_resolved", "target_abx")}
+          {action("target_abx", "target", "Target antibiotics")}
+          {recurrent_block()}
+        </div>
+
+      </div>
+    </div><!-- /mid -->
+
+
+    <!-- ════ RIGHT: Persistent fever path ════ -->
+    <div class="section-panel {rp} col">
+      <div class="section-hdr hdr-persistent">Persistent fever or remains clinically unstable</div>
+
+      {yn("p_stable", "p_unstable", "Stable", "Unstable")}
+
+      <div class="two-col mt4">
+
+        <!-- Stable → continue empiric -->
+        <div class="col">
+          {qcard("p_stable", "Clinically stable", sub="Continue empiric therapy")}
+          {arr("p_stable", "p_stable")}
+          {action("p_stable", "cont", "Continue empiric antibiotics")}
+        </div>
+
+        <!-- Unstable → escalate + investigate -->
+        <div class="col">
+          <div class="q-card urgent {c('p_unstable')}">
+            <strong>Clinically unstable:</strong>
+            <ul>
+              <li>Consider aminoglycoside</li>
+              <li>Liaise with ID re MRO</li>
+              <li>Repeat peripheral &amp; central cultures</li>
+            </ul>
+          </div>
+          {arr("p_unstable", "imaging_box")}
+          <div class="bullet-card {c('imaging_box')}">
+            <strong style="font-size:10px;">Consider investigation:</strong>
+            <ul>
+              <li>Liaise with ID</li>
+              <li>CT chest &#177; abdo/pelvis/sinus</li>
+              <li>MRI brain if CNS signs</li>
+              <li>Non-infective causes</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /right -->
+
+  </div><!-- /three-col -->
+
+  <!-- ── LEGEND ── -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#219150;"></div>Stop antibiotics</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#1D5FA8;"></div>Continue empiric</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#0F7A62;"></div>Target antibiotics</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#FFF8DC;border:1.5px solid #C49A00;"></div>Consider ceasing</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#E4F1F9;border:1.5px solid #7BB8D4;"></div>Decision / condition</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#FCDFDA;border:1.5px solid #C0392B;"></div>Urgent / unstable</div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#7D3C98;border-radius:50px;"></div>Recurrent fever</div>
+    <div class="legend-item">
+      <div class="badge yes" style="width:18px;height:18px;font-size:11px;box-shadow:none;">&#10003;</div>Yes / resolved</div>
+    <div class="legend-item">
+      <div class="badge no" style="width:18px;height:18px;font-size:11px;box-shadow:none;">&#10005;</div>No / ongoing / unstable</div>
+  </div>
+
+  <div class="footer">ADHB Antimicrobial Stewardship &mdash;
+  Based on ADHB Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
+
+</div></body></html>"""
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STREAMLIT UI
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Minimal scoped CSS — avoids corrupting Streamlit icon rendering
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background: #F7F9FB; }
-[data-testid="stSidebar"] { background: #FFFFFF; }
+  [data-testid="stAppViewContainer"] { background: #F7F3EE; }
+  [data-testid="stSidebar"] { background: #FFFFFF; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -748,24 +619,26 @@ st.title("🧬 Neutropaenic Sepsis Management")
 st.caption("ADHB Antimicrobial Stewardship — Interactive Decision Support Tool")
 st.markdown("---")
 
-col_form, col_chart = st.columns([1, 3.4], gap="large")
+col_form, col_chart = st.columns([1, 3.2], gap="large")
 
 with col_form:
     st.subheader("Patient Assessment")
 
     fever_resolved = st.radio(
         "**Fever status at 72-hour review**",
-        ["Resolved (afebrile >48h, clinically stable)",
+        ["Resolved (afebrile >48 h, clinically stable)",
          "Persistent / recurrent fever"],
-    ) == "Resolved (afebrile >48h, clinically stable)"
+    ) == "Resolved (afebrile >48 h, clinically stable)"
 
     neutro_resolved = st.radio(
         "**Neutropaenia status**",
-        ["Resolved", "Ongoing"], index=1,
+        ["Resolved", "Ongoing"],
+        index=1,
     ) == "Resolved"
 
     micro_defined = st.checkbox(
-        "**Microbiologically or clinically defined infection**", value=False,
+        "**Microbiologically or clinically defined infection**",
+        value=False,
     )
 
     stable = st.radio(
@@ -776,14 +649,16 @@ with col_form:
     ) == "Clinically stable"
 
     enterocolitis = st.checkbox(
-        "**Enterocolitis or significant mucositis**", value=False,
+        "**Enterocolitis or significant mucositis**",
+        value=False,
         disabled=(neutro_resolved and not micro_defined),
     )
 
     allo_sct = st.checkbox(
-        "**Allo-SCT patient**", value=False,
+        "**Allo-SCT patient**",
+        value=False,
         disabled=(enterocolitis or neutro_resolved),
-        help="Relevant when ongoing neutropaenia, no enterocolitis, resolved fever",
+        help="Relevant when: ongoing neutropaenia, no enterocolitis, resolved fever",
     )
 
     st.markdown("---")
@@ -802,16 +677,7 @@ with col_chart:
         micro_defined   = micro_defined,
     )
 
-    svg_str = build_svg(AN)
-
-    html = f"""<!DOCTYPE html>
-<html><head><style>body{{margin:0;padding:4px;background:#FAFAFA}}</style></head>
-<body>
-{COPY_JS}
-<div style="overflow-x:auto;margin-top:4px">{svg_str}</div>
-</body></html>"""
-
-    components.html(html, height=740, scrolling=True)
+    components.html(build_html(AN), height=820, scrolling=True)
 
 # ── Recommendations ──────────────────────────────────────────────────────────
 st.markdown("---")
@@ -819,10 +685,26 @@ st.subheader("📋 Recommended Actions")
 
 recs = get_recommendations(AN)
 if recs:
-    for icon, title, detail in recs:
-        st.markdown(f"**{icon} {title}**  \n{detail}")
+    cols = st.columns(min(len(recs), 3))
+    for i, (icon, title, detail) in enumerate(recs):
+        with cols[i % len(cols)]:
+            st.markdown(
+                f"""<div style="
+                  background:#fff; border-radius:12px; padding:12px 14px;
+                  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                  border-left:4px solid #2BBBAD;
+                  font-family:'Nunito',sans-serif; margin-bottom:8px;">
+                  <div style="font-size:14px;font-weight:800;color:#163344;margin-bottom:4px;">
+                    {icon} {title}</div>
+                  <div style="font-size:12px;color:#3A5060;line-height:1.5;">{detail}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
 else:
     st.info("Select patient parameters above to see tailored recommendations.")
 
 st.markdown("---")
-st.caption("Based on ADHB Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.")
+st.caption(
+    "Based on ADHB Neutropaenic Sepsis Management Guidelines. "
+    "Not a substitute for clinical judgement."
+)
