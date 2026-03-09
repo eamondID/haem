@@ -51,6 +51,7 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
         AN.add("persistent_fever")
         if stable:
             AN.add("p_stable")
+            AN.add("p_cont")
         else:
             AN.add("p_unstable"); AN.add("imaging_box")
     return AN
@@ -64,7 +65,7 @@ def get_recommendations(AN):
     if any(x in AN for x in ("continue_l", "continue_r")):
         recs.append(("💊", "Continue empiric antibiotics",
                      "Clinical situation warrants ongoing broad-spectrum cover."))
-    if "p_stable" in AN:
+    if "p_cont" in AN:
         recs.append(("💊", "Continue empiric therapy",
                      "Fever persisting but clinically stable — continue current empiric regimen."))
     if "cease_allo" in AN:
@@ -389,18 +390,6 @@ def build_html(AN):
     lc = "#BBBBBB" if left_dim  else "#5A6A7A"
     rc = "#BBBBBB" if right_dim else "#5A6A7A"
 
-    # ── recurrent fever block (reused in both mid sub-paths) ──────────────
-    def recurrent_block():
-        return f"""
-          {arr("target_abx", "recurrent_fever")}
-          <div class="rec-hdr {c('recurrent_fever')}">Recurrent fever</div>
-          {arr("recurrent_fever", "recurrent_box")}
-          <div class="rec-box {c('recurrent_box')}"><ul>
-            <li>Clinically unstable</li>
-            <li>Restart empiric abx + aminoglycoside</li>
-            <li>Liaise with ID re MRO</li>
-            <li>Repeat peripheral &amp; central cultures</li>
-          </ul></div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -499,9 +488,10 @@ def build_html(AN):
       {arr("liaise_id", "r_neutro_ongoing")}
       {yn("r_neutro_ongoing", "r_neutro_resolved", "Ongoing", "Resolved")}
 
+      <!-- Neutro sub-paths: ongoing (left) | resolved (right), converge to target -->
       <div class="two-col mt4">
 
-        <!-- Ongoing → entero split -->
+        <!-- Ongoing → entero split, with continue_r OR target_abx -->
         <div class="col">
           {qcard("r_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
           {arr("r_neutro_ongoing", "r_entero_yes")}
@@ -514,22 +504,32 @@ def build_html(AN):
             </div>
             <div class="col">
               {qcard("r_entero_no", "No enterocolitis or mucositis", fs="9px")}
+              <!-- arrow continues down to target_abx below -->
               {arr("r_entero_no", "target_abx")}
-              {action("target_abx", "target", "Target antibiotics", fs="9.5px")}
-              {recurrent_block()}
             </div>
           </div>
         </div>
 
-        <!-- Resolved → target + recurrent -->
+        <!-- Resolved → straight down to target_abx -->
         <div class="col">
           {qcard("r_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
           {arr("r_neutro_resolved", "target_abx")}
-          {action("target_abx", "target", "Target antibiotics")}
-          {recurrent_block()}
         </div>
 
       </div>
+
+      <!-- Shared terminal nodes: target_abx → recurrent (rendered ONCE) -->
+      {action("target_abx", "target", "Target antibiotics")}
+      {arr("target_abx", "recurrent_fever")}
+      <div class="rec-hdr {c('recurrent_fever')}">Recurrent fever</div>
+      {arr("recurrent_fever", "recurrent_box")}
+      <div class="rec-box {c('recurrent_box')}"><ul>
+        <li>Clinically unstable</li>
+        <li>Restart empiric abx + aminoglycoside</li>
+        <li>Liaise with ID re MRO</li>
+        <li>Repeat peripheral &amp; central cultures</li>
+      </ul></div>
+
     </div><!-- /mid -->
 
 
@@ -544,8 +544,8 @@ def build_html(AN):
         <!-- Stable → continue empiric -->
         <div class="col">
           {qcard("p_stable", "Clinically stable", sub="Continue empiric therapy")}
-          {arr("p_stable", "p_stable")}
-          {action("p_stable", "cont", "Continue empiric antibiotics")}
+          {arr("p_stable", "p_cont")}
+          {action("p_cont", "cont", "Continue empiric antibiotics")}
         </div>
 
         <!-- Unstable → escalate + investigate -->
