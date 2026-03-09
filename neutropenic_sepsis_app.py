@@ -24,15 +24,15 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
         if micro_defined:
             AN.add("micro_defined"); AN.add("liaise_id")
             if neutro_resolved:
-                AN.add("r_neutro_resolved"); AN.add("target_abx")
-                AN.add("recurrent_fever");   AN.add("recurrent_box")
+                AN.add("r_neutro_resolved")
+                AN.add("target_abx_r"); AN.add("recurrent_fever_r"); AN.add("recurrent_box_r")
             else:
                 AN.add("r_neutro_ongoing")
                 if enterocolitis:
                     AN.add("r_entero_yes"); AN.add("continue_r")
                 else:
-                    AN.add("r_entero_no"); AN.add("target_abx")
-                    AN.add("recurrent_fever"); AN.add("recurrent_box")
+                    AN.add("r_entero_no")
+                    AN.add("target_abx_o"); AN.add("recurrent_fever_o"); AN.add("recurrent_box_o")
         else:
             AN.add("fever_unknown")
             if neutro_resolved:
@@ -50,8 +50,7 @@ def determine_pathway(fever_resolved, neutro_resolved, stable,
     else:
         AN.add("persistent_fever")
         if stable:
-            AN.add("p_stable")
-            AN.add("p_cont")
+            AN.add("p_stable"); AN.add("p_cont")
         else:
             AN.add("p_unstable"); AN.add("imaging_box")
     return AN
@@ -74,7 +73,7 @@ def get_recommendations(AN):
     if "cease_non_allo" in AN:
         recs.append(("⚠️", "Consider ceasing (Non-allo-SCT)",
                      "Consider ceasing empiric antibiotics. Discuss with ID / treating team."))
-    if "target_abx" in AN:
+    if any(x in AN for x in ("target_abx_o", "target_abx_r")):
         recs.append(("🎯", "Target antibiotics",
                      "De-escalate to targeted therapy based on identified pathogen / source."))
     if "p_unstable" in AN:
@@ -83,7 +82,7 @@ def get_recommendations(AN):
     if "imaging_box" in AN:
         recs.append(("🖥️", "Consider further investigation",
                      "CT chest ± abdo/pelvis/sinus. MRI brain if CNS signs. Non-infective causes."))
-    if "recurrent_box" in AN:
+    if any(x in AN for x in ("recurrent_box_o", "recurrent_box_r")):
         recs.append(("🔄", "Recurrent fever",
                      "Restart empiric abx + consider aminoglycoside. Liaise re MRO. Repeat cultures."))
     return recs
@@ -313,6 +312,9 @@ body { font-family: var(--font); background: var(--bg); padding: 10px 12px 16px;
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 700; color: #3A4A5A; }
 .legend-swatch { width: 26px; height: 15px; border-radius: 5px; flex-shrink: 0; }
 
+/* ── CONVERGENCE BAR ── */
+.converge-wrap { width: 100%; display: flex; justify-content: center; margin: 0; }
+
 /* ── FOOTER ── */
 .footer { text-align: right; font-size: 9px; color: #8A9AA8; margin-top: 8px; font-style: italic; }
 
@@ -377,9 +379,10 @@ def build_html(AN):
         s = f' style="font-size:{fs};"' if fs else ""
         return f'<div class="action-node {kind} {c(nid)}"{s}>{text}</div>'
 
-    # Panel tint: dim entire column when its path is fully inactive
-    left_dim  = len(AN) > 2 and "fever_unknown"   not in AN and "resolved_fever" not in AN
-    mid_dim   = len(AN) > 2 and "micro_defined"   not in AN
+    # Panel tint: dim entire column when its path is not active
+    # left_dim: when fever_unknown is not in AN (note: resolved_fever is shared, so only fever_unknown is the discriminator)
+    left_dim  = len(AN) > 2 and "fever_unknown"    not in AN
+    mid_dim   = len(AN) > 2 and "micro_defined"    not in AN
     right_dim = len(AN) > 2 and "persistent_fever" not in AN
 
     lp = "panel-dim" if left_dim  else "panel-left"
@@ -390,6 +393,24 @@ def build_html(AN):
     lc = "#BBBBBB" if left_dim  else "#5A6A7A"
     rc = "#BBBBBB" if right_dim else "#5A6A7A"
 
+    def routing_row(yes_lbl, no_lbl):
+        """Top routing yn-row in the left column.
+        Only the YES (left/No-source) badge can be active — when fever_unknown path is taken.
+        The NO badge (Defined → mid column) is NEVER active; it points to another column.
+        Panel tint already communicates which column is live."""
+        if len(AN) <= 2:
+            sy = sn = ""          # nothing selected: all neutral
+        elif "fever_unknown" in AN:
+            sy = "active"         # left path chosen: yes badge active
+            sn = "dimmed"
+        else:
+            sy = "dimmed"         # mid or right path chosen: left panel dimmed throughout
+            sn = "dimmed"
+        dim_line = " dim" if sy == "dimmed" else ""
+        return f"""<div class="yn-row{dim_line}">
+          <div class="badge-wrap">{_badge_html(True, sy)}<span class="badge-lbl {sy}">{yes_lbl}</span></div>
+          <div class="badge-wrap">{_badge_html(False, sn)}<span class="badge-lbl {sn}">{no_lbl}</span></div>
+        </div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -424,7 +445,7 @@ def build_html(AN):
     <div class="section-panel {lp} col">
       <div class="section-hdr hdr-resolved">Resolved fever: Afebrile &gt;48 h &amp; clinically stable</div>
 
-      {yn("fever_unknown", "micro_defined", "No source", "Defined")}
+      {routing_row(yes_lbl="No source", no_lbl="Defined")}
       {qcard("fever_unknown", "Fever of unknown origin")}
       {arr("fever_unknown", "l_neutro_resolved")}
       {yn("l_neutro_resolved", "l_neutro_ongoing", "Resolved", "Ongoing")}
@@ -480,18 +501,13 @@ def build_html(AN):
     <div class="section-panel {mp} col">
       <div class="section-hdr hdr-micro">Microbiologically / clinically defined infection</div>
 
-      {qcard("micro_defined",
-             "Microbiologically or clinically defined infection",
-             extra="dashed", sub="Defined source confirmed")}
-      {arr("micro_defined", "liaise_id")}
       {qcard("liaise_id", "Liaise with ID", extra="dashed")}
       {arr("liaise_id", "r_neutro_ongoing")}
       {yn("r_neutro_ongoing", "r_neutro_resolved", "Ongoing", "Resolved")}
 
-      <!-- Neutro sub-paths: ongoing (left) | resolved (right), converge to target -->
       <div class="two-col mt4">
 
-        <!-- Ongoing → entero split, with continue_r OR target_abx -->
+        <!-- Ongoing → entero split → continue OR target+recurrent -->
         <div class="col">
           {qcard("r_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
           {arr("r_neutro_ongoing", "r_entero_yes")}
@@ -504,32 +520,38 @@ def build_html(AN):
             </div>
             <div class="col">
               {qcard("r_entero_no", "No enterocolitis or mucositis", fs="9px")}
-              <!-- arrow continues down to target_abx below -->
-              {arr("r_entero_no", "target_abx")}
+              {arr("r_entero_no", "target_abx_o")}
+              {action("target_abx_o", "target", "Target antibiotics", fs="9.5px")}
+              {arr("target_abx_o", "recurrent_fever_o")}
+              <div class="rec-hdr {c('recurrent_fever_o')}">Recurrent fever</div>
+              {arr("recurrent_fever_o", "recurrent_box_o")}
+              <div class="rec-box {c('recurrent_box_o')}"><ul>
+                <li>Clinically unstable</li>
+                <li>Restart empiric abx + aminoglycoside</li>
+                <li>Liaise with ID re MRO</li>
+                <li>Repeat peripheral &amp; central cultures</li>
+              </ul></div>
             </div>
           </div>
         </div>
 
-        <!-- Resolved → straight down to target_abx -->
+        <!-- Resolved → target+recurrent directly -->
         <div class="col">
           {qcard("r_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
-          {arr("r_neutro_resolved", "target_abx")}
+          {arr("r_neutro_resolved", "target_abx_r")}
+          {action("target_abx_r", "target", "Target antibiotics")}
+          {arr("target_abx_r", "recurrent_fever_r")}
+          <div class="rec-hdr {c('recurrent_fever_r')}">Recurrent fever</div>
+          {arr("recurrent_fever_r", "recurrent_box_r")}
+          <div class="rec-box {c('recurrent_box_r')}"><ul>
+            <li>Clinically unstable</li>
+            <li>Restart empiric abx + aminoglycoside</li>
+            <li>Liaise with ID re MRO</li>
+            <li>Repeat peripheral &amp; central cultures</li>
+          </ul></div>
         </div>
 
       </div>
-
-      <!-- Shared terminal nodes: target_abx → recurrent (rendered ONCE) -->
-      {action("target_abx", "target", "Target antibiotics")}
-      {arr("target_abx", "recurrent_fever")}
-      <div class="rec-hdr {c('recurrent_fever')}">Recurrent fever</div>
-      {arr("recurrent_fever", "recurrent_box")}
-      <div class="rec-box {c('recurrent_box')}"><ul>
-        <li>Clinically unstable</li>
-        <li>Restart empiric abx + aminoglycoside</li>
-        <li>Liaise with ID re MRO</li>
-        <li>Repeat peripheral &amp; central cultures</li>
-      </ul></div>
-
     </div><!-- /mid -->
 
 
