@@ -9,6 +9,14 @@ import streamlit.components.v1 as components
 from pathway import determine_pathway, get_recommendations, build_html
 
 # Minimal scoped CSS — avoids corrupting Streamlit icon rendering
+st.markdown("""
+<style>
+  [data-testid="stAppViewContainer"] { background: #F7F3EE; }
+  [data-testid="stSidebar"] { background: #FFFFFF; }
+  [data-testid="stMainBlockContainer"] { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+  .block-container { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+</style>
+""", unsafe_allow_html=True)
 
 st.title("\U0001f9ec Neutropenic Sepsis Management")
 st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Interactive Decision Support Tool")
