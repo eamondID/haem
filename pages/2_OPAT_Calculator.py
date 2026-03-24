@@ -54,9 +54,9 @@ with col_result:
           <div style="font-size:13px;font-weight:600;color:#5A7A8A;margin-bottom:4px;">
             Last Dose Date</div>
           <div style="font-size:22px;font-weight:800;color:#163344;">
-            {last_dose.strftime('%d-%m-%Y')}</div>
+            {last_dose.strftime('%A %d %B %Y')}</div>
           <div style="font-size:11px;color:#5A7A8A;margin-top:4px;">
-            {start_date.strftime('%d-%m-%Y')} + {dot} days \u2212 1 = {last_dose.strftime('%A %d %B %Y')}</div>
+            {start_date.strftime('%d-%m-%Y')} + {dot} days \u2212 1 = {last_dose.strftime('%d-%m-%Y')}</div>
         </div>""",
         unsafe_allow_html=True,
     )
