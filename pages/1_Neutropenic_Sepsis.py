@@ -63,6 +63,7 @@ with col_form:
     )
  
     st.markdown("---")
+    copy_clicked = st.button("\U0001f4cb Copy diagram to clipboard", use_container_width=True)
     st.caption(
         "\u2139\ufe0f All decisions should be made in clinical context. "
         "Consult Infectious Diseases as appropriate."
@@ -78,7 +79,7 @@ with col_chart:
         micro_defined   = micro_defined,
     )
  
-    components.html(build_html(AN), height=870, scrolling=True)
+    components.html(build_html(AN, auto_copy=copy_clicked), height=870, scrolling=True)
  
 # ── Recommendations ──────────────────────────────────────────────────────────
 st.markdown("---")
@@ -106,6 +107,6 @@ else:
  
 st.markdown("---")
 st.caption(
-    "Based on Auckland Te Toka Tumai neutropenic Sepsis Management Guidelines. "
+    "Based on Auckland Te Toka Tumai Neutropenic Sepsis Management Guidelines. "
     "Not a substitute for clinical judgement."
 )
