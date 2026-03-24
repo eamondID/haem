@@ -324,7 +324,7 @@ def build_html(AN):
 <body><div class="infographic">
  
   <!-- ── TITLE + REVIEW BAR ── -->
-  <span class="hdr-title">\U0001f9ec Neutropaenic Sepsis Management</span>
+  <span class="hdr-title">\U0001f9ec neutropenic Sepsis Management</span>
   {arr("header", "review72")}
   <span class="hdr-review">Review at 72 hours \u2014 empiric antibiotics</span>
  
@@ -526,7 +526,7 @@ def build_html(AN):
   </div>
  
   <div class="footer">Auckland Te Toka Tumai Antimicrobial Stewardship &mdash;
-  Based on Auckland Te Toka Tumai Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
+  Based on Auckland Te Toka Tumai neutropenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
  
   <div style="text-align:center;margin-top:12px;">
     <button id="copyBtn" onclick="copyDiagram()" style="
