@@ -20,7 +20,7 @@ st.title("\U0001f9ec Neutropenic Sepsis Management")
 st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Interactive Decision Support Tool")
 st.markdown("---")
  
-col_form, col_chart = st.columns([1, 3.2], gap="large")
+col_form, col_chart = st.columns([1, 4.5], gap="large")
  
 with col_form:
     st.subheader("Patient Assessment")
