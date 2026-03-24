@@ -63,7 +63,6 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    copy_clicked = st.button("\U0001f4cb Copy diagram to clipboard", use_container_width=True)
     st.caption(
         "\u2139\ufe0f All decisions should be made in clinical context. "
         "Consult Infectious Diseases as appropriate."
@@ -78,7 +77,7 @@ AN = determine_pathway(
     micro_defined   = micro_defined,
 )
 
-components.html(build_html(AN, auto_copy=copy_clicked), height=870, scrolling=True)
+components.html(build_html(AN)
 
 # ── Recommendations ──────────────────────────────────────────────────────────
 st.markdown("---")
