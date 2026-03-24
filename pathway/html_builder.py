@@ -44,7 +44,7 @@ _CSS = """
  
 body { font-family: var(--font); background: var(--bg); padding: 10px 12px 16px; }
  
-.infographic { max-width: 100%; margin: 0 auto; }
+.infographic { max-width: 1400px; margin: 0 auto; }
  
 /* ── HEADER PILLS ── */
 .hdr-title {
