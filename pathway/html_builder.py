@@ -360,14 +360,14 @@ def build_html(AN):
  
         <!-- Resolved neutro \u2192 stop -->
         <div class="col">
-          {qcard("l_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
+          {qcard("l_neutro_resolved", "Resolved neutropenia", fs="9.5px")}
           {arr("l_neutro_resolved", "stop_abx")}
           {action("stop_abx", "stop", "Stop antibiotics")}
         </div>
  
         <!-- Ongoing neutro \u2192 entero split -->
         <div class="col">
-          {qcard("l_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
+          {qcard("l_neutro_ongoing", "Ongoing neutropenia", fs="9.5px")}
           {arr("l_neutro_ongoing", "l_entero_yes")}
           {yn("l_entero_yes", "l_entero_no", "Entero", "No entero")}
           <div class="two-col mt4">
@@ -415,7 +415,7 @@ def build_html(AN):
  
         <!-- Ongoing \u2192 entero split \u2192 continue OR target+recurrent -->
         <div class="col">
-          {qcard("r_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
+          {qcard("r_neutro_ongoing", "Ongoing neutropenia", fs="9.5px")}
           {arr("r_neutro_ongoing", "r_entero_yes")}
           {yn("r_entero_yes", "r_entero_no", "Entero", "No entero")}
           <div class="two-col mt4">
@@ -443,7 +443,7 @@ def build_html(AN):
  
         <!-- Resolved \u2192 target+recurrent directly -->
         <div class="col">
-          {qcard("r_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
+          {qcard("r_neutro_resolved", "Resolved neutropenia", fs="9.5px")}
           {arr("r_neutro_resolved", "target_abx_r")}
           {action("target_abx_r", "target", "Target antibiotics")}
           {arr("target_abx_r", "recurrent_fever_r")}
