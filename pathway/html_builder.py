@@ -318,7 +318,9 @@ def build_html(AN):
  
     return f"""<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8">{_CSS}</head>
+<head><meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+{_CSS}</head>
 <body><div class="infographic">
  
   <!-- ── TITLE + REVIEW BAR ── -->
@@ -523,7 +525,42 @@ def build_html(AN):
       <div class="badge no" style="width:18px;height:18px;font-size:11px;box-shadow:none;">&#10005;</div>No / ongoing / unstable</div>
   </div>
  
-  <div class="footer">ADHB Antimicrobial Stewardship &mdash;
-  Based on ADHB Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
+  <div class="footer">Auckland Te Toka Tumai Antimicrobial Stewardship &mdash;
+  Based on Auckland Te Toka Tumai Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
  
-</div></body></html>"""
+  <div style="text-align:center;margin-top:12px;">
+    <button id="copyBtn" onclick="copyDiagram()" style="
+      font-family:var(--font);font-size:12px;font-weight:700;
+      padding:9px 22px;border-radius:50px;border:none;cursor:pointer;
+      background:#2BBBAD;color:#fff;box-shadow:var(--shadow);
+      transition:background 0.2s;">&#128203; Copy diagram to clipboard</button>
+  </div>
+ 
+</div>
+ 
+<script>
+async function copyDiagram() {{
+  const btn = document.getElementById('copyBtn');
+  const el = document.querySelector('.infographic');
+  btn.disabled = true;
+  btn.textContent = 'Capturing\u2026';
+  try {{
+    const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
+    btn.innerHTML = '&#10003; Copied!';
+  }} catch (e) {{
+    try {{
+      const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
+      const url = canvas.toDataURL('image/png');
+      window.open(url, '_blank');
+      btn.textContent = 'Opened in new tab \u2014 right-click to copy';
+    }} catch (e2) {{
+      btn.textContent = 'Copy failed \u2014 try again';
+    }}
+  }}
+  setTimeout(() => {{ btn.innerHTML = '&#128203; Copy diagram to clipboard'; btn.disabled = false; }}, 2500);
+}}
+</script>
+ 
+</body></html>"""
