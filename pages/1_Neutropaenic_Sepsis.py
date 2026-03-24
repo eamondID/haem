@@ -1,5 +1,5 @@
 """
-Neutropaenic Sepsis Management — BMJ Infographic Style
+Neutropenic Sepsis Management — BMJ Infographic Style
 Auckland Te Toka Tumai Antimicrobial Stewardship
 """
  
@@ -16,7 +16,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
  
-st.title("\U0001f9ec Neutropaenic Sepsis Management")
+st.title("\U0001f9ec Neutropenic Sepsis Management")
 st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Interactive Decision Support Tool")
 st.markdown("---")
  
@@ -32,7 +32,7 @@ with col_form:
     ) == "Resolved (afebrile >48 h, clinically stable)"
  
     neutro_resolved = st.radio(
-        "**Neutropaenia status**",
+        "**Neutropenia status**",
         ["Resolved", "Ongoing"],
         index=1,
     ) == "Resolved"
@@ -59,7 +59,7 @@ with col_form:
         "**Allo-SCT patient**",
         value=False,
         disabled=(enterocolitis or neutro_resolved),
-        help="Relevant when: ongoing neutropaenia, no enterocolitis, resolved fever",
+        help="Relevant when: ongoing neutropenia, no enterocolitis, resolved fever",
     )
  
     st.markdown("---")
