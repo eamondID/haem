@@ -77,7 +77,7 @@ AN = determine_pathway(
     micro_defined   = micro_defined,
 )
 
-components.html(build_html(AN)
+components.html(build_html(AN))
 
 # ── Recommendations ──────────────────────────────────────────────────────────
 st.markdown("---")
