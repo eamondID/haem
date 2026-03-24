@@ -13,6 +13,8 @@ st.markdown("""
 <style>
   [data-testid="stAppViewContainer"] { background: #F7F3EE; }
   [data-testid="stSidebar"] { background: #FFFFFF; }
+  .stMainBlockContainer { max-width: 100%; padding-left: 2rem; padding-right: 2rem; }
+  iframe { width: 100% !important; }
 </style>
 """, unsafe_allow_html=True)
 
