@@ -323,7 +323,16 @@ def build_html(AN, auto_copy=False):
 <head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 {_CSS}</head>
-<body><div class="infographic">
+<body>
+<div style="text-align:left;margin-bottom:8px;">
+  <button id="copyBtn" onclick="copyDiagram()" style="
+    font-family:var(--font);font-size:12px;font-weight:700;
+    padding:9px 22px;border-radius:50px;border:none;cursor:pointer;
+    background:#2BBBAD;color:#fff;box-shadow:var(--shadow);
+    transition:background 0.2s;">&#128203; Copy diagram to clipboard</button>
+</div>
+<div class="infographic">
+
  
   <!-- ── TITLE + REVIEW BAR ── -->
   <span class="hdr-title">\U0001f9ec Neutropaenic Sepsis Management</span>
@@ -531,28 +540,27 @@ def build_html(AN, auto_copy=False):
 
 <script>
 async function copyDiagram() {{
-  const status = document.getElementById('copyStatus');
+  const btn = document.getElementById('copyBtn');
   const el = document.querySelector('.infographic');
-  status.style.display = 'block';
-  status.textContent = 'Capturing\u2026';
+  btn.disabled = true;
+  btn.textContent = 'Capturing\u2026';
   try {{
     const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
     await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-    status.innerHTML = '&#10003; Copied to clipboard!';
+    btn.innerHTML = '&#10003; Copied!';
   }} catch (e) {{
     try {{
       const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
       const url = canvas.toDataURL('image/png');
       window.open(url, '_blank');
-      status.textContent = 'Opened in new tab \u2014 right-click to copy';
+      btn.textContent = 'Opened in new tab \u2014 right-click to copy';
     }} catch (e2) {{
-      status.textContent = 'Copy failed \u2014 try again';
+      btn.textContent = 'Copy failed \u2014 try again';
     }}
   }}
-  setTimeout(() => {{ status.style.display = 'none'; }}, 3000);
+  setTimeout(() => {{ btn.innerHTML = '&#128203; Copy diagram to clipboard'; btn.disabled = false; }}, 2500);
 }}
-{auto_copy_js}
 </script>
 
 </body></html>"""
