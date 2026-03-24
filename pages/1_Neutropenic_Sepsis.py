@@ -106,6 +106,6 @@ else:
  
 st.markdown("---")
 st.caption(
-    "Based on Auckland Te Toka Tumai Neutropaenic Sepsis Management Guidelines. "
+    "Based on Auckland Te Toka Tumai neutropenic Sepsis Management Guidelines. "
     "Not a substitute for clinical judgement."
 )
