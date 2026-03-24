@@ -1,6 +1,6 @@
 """
 Neutropaenic Sepsis Management — BMJ Infographic Style
-ADHB Antimicrobial Stewardship
+Auckland Te Toka Tumai Antimicrobial Stewardship
 """
  
 import streamlit as st
@@ -17,7 +17,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
  
 st.title("\U0001f9ec Neutropaenic Sepsis Management")
-st.caption("ADHB Antimicrobial Stewardship \u2014 Interactive Decision Support Tool")
+st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Interactive Decision Support Tool")
 st.markdown("---")
  
 col_form, col_chart = st.columns([1, 3.2], gap="large")
@@ -78,7 +78,7 @@ with col_chart:
         micro_defined   = micro_defined,
     )
  
-    components.html(build_html(AN), height=820, scrolling=True)
+    components.html(build_html(AN), height=870, scrolling=True)
  
 # ── Recommendations ──────────────────────────────────────────────────────────
 st.markdown("---")
@@ -106,6 +106,6 @@ else:
  
 st.markdown("---")
 st.caption(
-    "Based on ADHB Neutropaenic Sepsis Management Guidelines. "
+    "Based on Auckland Te Toka Tumai Neutropaenic Sepsis Management Guidelines. "
     "Not a substitute for clinical judgement."
 )
