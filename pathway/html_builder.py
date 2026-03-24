@@ -270,7 +270,7 @@ def _arrow_svg(from_id, to_id, AN):
         </svg></div>"""
  
  
-def build_html(AN):
+def build_html(AN, auto_copy=False):
     def c(nid):                    return _node_cls(nid, AN)
     def arr(fid, tid):             return _arrow_svg(fid, tid, AN)
     def yn(yes_id, no_id, yl, nl): return _yn_row(yes_id, no_id, AN, yl, nl)
@@ -299,8 +299,8 @@ def build_html(AN):
  
     def routing_row(yes_lbl, no_lbl):
         """Top routing yn-row in the left column.
-        Only the YES (left/No-source) badge can be active — when fever_unknown path is taken.
-        The NO badge (Defined → mid column) is NEVER active; it points to another column.
+        Only the YES (left/No-source) badge can be active \u2014 when fever_unknown path is taken.
+        The NO badge (Defined \u2192 mid column) is NEVER active; it points to another column.
         Panel tint already communicates which column is live."""
         if len(AN) <= 2:
             sy = sn = ""          # nothing selected: all neutral
@@ -315,7 +315,9 @@ def build_html(AN):
           <div class="badge-wrap">{_badge_html(True, sy)}<span class="badge-lbl {sy}">{yes_lbl}</span></div>
           <div class="badge-wrap">{_badge_html(False, sn)}<span class="badge-lbl {sn}">{no_lbl}</span></div>
         </div>"""
- 
+
+    auto_copy_js = "setTimeout(copyDiagram, 400);" if auto_copy else ""
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8">
@@ -324,7 +326,7 @@ def build_html(AN):
 <body><div class="infographic">
  
   <!-- ── TITLE + REVIEW BAR ── -->
-  <span class="hdr-title">\U0001f9ec Neutropenic Sepsis Management</span>
+  <span class="hdr-title">\U0001f9ec Neutropaenic Sepsis Management</span>
   {arr("header", "review72")}
   <span class="hdr-review">Review at 72 hours \u2014 empiric antibiotics</span>
  
@@ -335,6 +337,7 @@ def build_html(AN):
       <line x1="450" y1="0"  x2="450" y2="9"  stroke="#2C3E50" stroke-width="2.2"/>
       <line x1="160" y1="9"  x2="740" y2="9"  stroke="#2C3E50" stroke-width="2.2"/>
       <line x1="160" y1="9"  x2="160" y2="26" stroke="#2C3E50" stroke-width="2.2"/>
+      <line x1="450" y1="9"  x2="450" y2="26" stroke="#2C3E50" stroke-width="2.2"/>
       <line x1="740" y1="9"  x2="740" y2="26" stroke="#2C3E50" stroke-width="2.2"/>
     </svg>
     <div style="width:33%;text-align:center;padding-top:15px;">
@@ -347,7 +350,7 @@ def build_html(AN):
   <!-- ── THREE COLUMNS ── -->
   <div class="three-col">
  
-    <!-- \u2550\u2550\u2550\u2550 LEFT: Fever unknown path \u2550\u2550\u2550\u2550 -->
+    <!-- LEFT: Fever unknown path -->
     <div class="section-panel {lp} col">
       <div class="section-hdr hdr-resolved">Resolved fever: Afebrile &gt;48 h &amp; clinically stable</div>
  
@@ -358,28 +361,24 @@ def build_html(AN):
  
       <div class="two-col mt4">
  
-        <!-- Resolved neutro \u2192 stop -->
         <div class="col">
-          {qcard("l_neutro_resolved", "Resolved neutropenia", fs="9.5px")}
+          {qcard("l_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
           {arr("l_neutro_resolved", "stop_abx")}
           {action("stop_abx", "stop", "Stop antibiotics")}
         </div>
  
-        <!-- Ongoing neutro \u2192 entero split -->
         <div class="col">
-          {qcard("l_neutro_ongoing", "Ongoing neutropenia", fs="9.5px")}
+          {qcard("l_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
           {arr("l_neutro_ongoing", "l_entero_yes")}
           {yn("l_entero_yes", "l_entero_no", "Entero", "No entero")}
           <div class="two-col mt4">
  
-            <!-- Entero yes \u2192 continue -->
             <div class="col">
               {qcard("l_entero_yes", "Has enterocolitis or mucositis", fs="9px")}
               {arr("l_entero_yes", "continue_l")}
               {action("continue_l", "cont", "Continue empiric antibiotics", fs="9.5px")}
             </div>
  
-            <!-- Entero no \u2192 allo/non-allo split -->
             <div class="col">
               {qcard("l_entero_no", "No enterocolitis or mucositis", fs="9px")}
               {arr("l_entero_no", "allo_sct")}
@@ -403,7 +402,7 @@ def build_html(AN):
     </div><!-- /left -->
  
  
-    <!-- \u2550\u2550\u2550\u2550 MIDDLE: Micro-defined path \u2550\u2550\u2550\u2550 -->
+    <!-- MIDDLE: Micro-defined path -->
     <div class="section-panel {mp} col">
       <div class="section-hdr hdr-micro">Microbiologically / clinically defined infection</div>
  
@@ -413,9 +412,8 @@ def build_html(AN):
  
       <div class="two-col mt4">
  
-        <!-- Ongoing \u2192 entero split \u2192 continue OR target+recurrent -->
         <div class="col">
-          {qcard("r_neutro_ongoing", "Ongoing neutropenia", fs="9.5px")}
+          {qcard("r_neutro_ongoing", "Ongoing neutropaenia", fs="9.5px")}
           {arr("r_neutro_ongoing", "r_entero_yes")}
           {yn("r_entero_yes", "r_entero_no", "Entero", "No entero")}
           <div class="two-col mt4">
@@ -441,9 +439,8 @@ def build_html(AN):
           </div>
         </div>
  
-        <!-- Resolved \u2192 target+recurrent directly -->
         <div class="col">
-          {qcard("r_neutro_resolved", "Resolved neutropenia", fs="9.5px")}
+          {qcard("r_neutro_resolved", "Resolved neutropaenia", fs="9.5px")}
           {arr("r_neutro_resolved", "target_abx_r")}
           {action("target_abx_r", "target", "Target antibiotics")}
           {arr("target_abx_r", "recurrent_fever_r")}
@@ -461,7 +458,7 @@ def build_html(AN):
     </div><!-- /mid -->
  
  
-    <!-- \u2550\u2550\u2550\u2550 RIGHT: Persistent fever path \u2550\u2550\u2550\u2550 -->
+    <!-- RIGHT: Persistent fever path -->
     <div class="section-panel {rp} col">
       <div class="section-hdr hdr-persistent">Persistent fever or remains clinically unstable</div>
  
@@ -469,14 +466,12 @@ def build_html(AN):
  
       <div class="two-col mt4">
  
-        <!-- Stable \u2192 continue empiric -->
         <div class="col">
           {qcard("p_stable", "Clinically stable", sub="Continue empiric therapy")}
           {arr("p_stable", "p_cont")}
           {action("p_cont", "cont", "Continue empiric antibiotics")}
         </div>
  
-        <!-- Unstable \u2192 escalate + investigate -->
         <div class="col">
           <div class="q-card urgent {c('p_unstable')}">
             <strong>Clinically unstable:</strong>
@@ -503,7 +498,7 @@ def build_html(AN):
  
   </div><!-- /three-col -->
  
-  <!-- \u2500\u2500 LEGEND \u2500\u2500 -->
+  <!-- LEGEND -->
   <div class="legend">
     <div class="legend-item">
       <div class="legend-swatch" style="background:#219150;"></div>Stop antibiotics</div>
@@ -526,41 +521,38 @@ def build_html(AN):
   </div>
  
   <div class="footer">Auckland Te Toka Tumai Antimicrobial Stewardship &mdash;
-  Based on Auckland Te Toka Tumai Neutropenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
- 
-  <div style="text-align:center;margin-top:12px;">
-    <button id="copyBtn" onclick="copyDiagram()" style="
-      font-family:var(--font);font-size:12px;font-weight:700;
-      padding:9px 22px;border-radius:50px;border:none;cursor:pointer;
-      background:#2BBBAD;color:#fff;box-shadow:var(--shadow);
-      transition:background 0.2s;">&#128203; Copy diagram to clipboard</button>
-  </div>
- 
+  Based on Auckland Te Toka Tumai Neutropaenic Sepsis Management Guidelines. Not a substitute for clinical judgement.</div>
 </div>
- 
+
+<div id="copyStatus" style="
+  font-family:var(--font);font-size:12px;font-weight:700;
+  text-align:center;padding:8px;color:#2BBBAD;
+  display:none;"></div>
+
 <script>
 async function copyDiagram() {{
-  const btn = document.getElementById('copyBtn');
+  const status = document.getElementById('copyStatus');
   const el = document.querySelector('.infographic');
-  btn.disabled = true;
-  btn.textContent = 'Capturing\u2026';
+  status.style.display = 'block';
+  status.textContent = 'Capturing\u2026';
   try {{
     const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
     await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-    btn.innerHTML = '&#10003; Copied!';
+    status.innerHTML = '&#10003; Copied to clipboard!';
   }} catch (e) {{
     try {{
       const canvas = await html2canvas(el, {{ backgroundColor: '#F7F3EE', scale: 2 }});
       const url = canvas.toDataURL('image/png');
       window.open(url, '_blank');
-      btn.textContent = 'Opened in new tab \u2014 right-click to copy';
+      status.textContent = 'Opened in new tab \u2014 right-click to copy';
     }} catch (e2) {{
-      btn.textContent = 'Copy failed \u2014 try again';
+      status.textContent = 'Copy failed \u2014 try again';
     }}
   }}
-  setTimeout(() => {{ btn.innerHTML = '&#128203; Copy diagram to clipboard'; btn.disabled = false; }}, 2500);
+  setTimeout(() => {{ status.style.display = 'none'; }}, 3000);
 }}
+{auto_copy_js}
 </script>
- 
+
 </body></html>"""
