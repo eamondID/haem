@@ -51,7 +51,7 @@ with col_result:
           border-left:4px solid #2BBBAD;
           font-family:'Nunito',sans-serif; margin-bottom:12px;">
           <div style="font-size:13px;font-weight:600;color:#5A7A8A;margin-bottom:4px;">
-            Last Dose Date</div>
+            Last Treatment Day & Date</div>
           <div style="font-size:22px;font-weight:800;color:#163344;">
             {last_dose.strftime('%A %d %B %Y')}</div>
           <div style="font-size:11px;color:#5A7A8A;margin-top:4px;">
