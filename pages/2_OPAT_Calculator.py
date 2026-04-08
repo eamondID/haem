@@ -55,8 +55,7 @@ with col_result:
           <div style="font-size:22px;font-weight:800;color:#163344;">
             {last_dose.strftime('%A %d %B %Y')}</div>
           <div style="font-size:11px;color:#5A7A8A;margin-top:4px;">
-            {start_date.strftime('%d-%m-%Y')} + {dot} days \u2212 1 = {last_dose.strftime('%d-%m-%Y')}</div>
-        </div>""",
+            {start_date.strftime('%d-%m-%Y')} + {dot} days{' − 1' if method != 'CIVI' else ''} = {last_dose.strftime('%d-%m-%Y')}        </div>""",
         unsafe_allow_html=True,
     )
     
