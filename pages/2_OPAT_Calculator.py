@@ -11,7 +11,7 @@ from opat import calculate_last_dose, calculate_line_removal
 from opat.calculator import METHODS, CIVI, IVB, PO
  
 st.title("\U0001f4c5 OPAT Last Dose Calculator")
-st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Calculate last treatment day date")
+st.caption("Auckland Te Toka Tumai Antimicrobial Stewardship \u2014 Calculate last treatment day and date")
 st.markdown("---")
  
 col_input, col_result = st.columns([1, 1.5], gap="large")
