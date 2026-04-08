@@ -6,9 +6,15 @@ PO   = "Oral therapy (PO)"
  
 METHODS = [CIVI, IVB, PO]
  
- 
-def calculate_last_dose(start_date: date, days_of_therapy: int) -> date:
-    """Last dose = start date + DOT - 1 day."""
+
+def calculate_last_dose(start_date: date, days_of_therapy: int, method: str) -> date:
+    """Last dose calculation varies by method: CIVI (start + DOT), IVB (start + DOT - 1), PO (start + DOT - 1)."""
+    if method == CIVI:
+        return start_date + timedelta(days=days_of_therapy)
+    if method == IVB:
+        return start_date + timedelta(days=days_of_therapy - 1)
+    if method == PO:
+        return start_date + timedelta(days=days_of_therapy - 1)
     return start_date + timedelta(days=days_of_therapy - 1)
  
  
