@@ -42,7 +42,7 @@ with col_input:
 with col_result:
     st.subheader("Results")
  
-    last_dose = calculate_last_dose(start_date, dot)
+    last_dose = calculate_last_dose(start_date, dot, method)
      
     st.markdown(
         f"""<div style="
